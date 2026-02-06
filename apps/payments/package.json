@@ -1,11 +1,13 @@
-﻿{
+{
   "name": "@gadai/payments",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"console.log('TODO: scaffold payments')\"",
-    "build": "node -e \"console.log('TODO: build payments')\"",
-    "lint": "node -e \"console.log('TODO: lint payments')\"",
-    "test": "node -e \"console.log('TODO: test payments')\""
+    "dev": "ts-node-dev --respawn src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "stripe": "^13.10.0"
   }
 }

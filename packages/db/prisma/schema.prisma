@@ -1,4 +1,4 @@
-﻿generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -8,19 +8,32 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  profiles  Profile[]
+  id           String @id @default(cuid())
+  email        String @unique
+  password     String
+  plan         String @default("free") // free | pro | premium
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  profiles     Profile[]
+  authSessions AuthSession[]
+  subscriptions Subscription[]
+  aiConversations AiConversation[]
+  aiUsage      AiUsage[]
 }
 
 model Profile {
-  id        String   @id @default(cuid())
-  userId    String
-  rawInput  Json
-  facts     Json
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  id             String   @id @default(cuid())
+  userId         String
+  rawInput       Json
+  facts          Json
+  interpretation Json     @default("{}")
+  createdAt      DateTime @default(now())
+  tierUsed       String   // free | pro
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Order {
@@ -32,4 +45,72 @@ model Order {
   provider  String
   meta      Json
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
+
+model AuthSession {
+  id          String   @id @default(cuid())
+  userId      String
+  refreshHash String
+  userAgent   String?
+  ipAddress   String?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+
+model Subscription {
+  id           String   @id @default(cuid())
+  userId       String
+  plan         String   // free | pro | premium
+  status       String   // active | expired | canceled
+  provider     String   // stripe
+  providerRef  String   // stripe_subscription_id
+  validTill    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AiMessage[]
+
+  @@index([userId])
+}
+
+model AiMessage {
+  id              String   @id @default(cuid())
+  conversationId  String
+  role            String   // user | assistant | system
+  content         String
+  createdAt       DateTime @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model AiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime
+  messages  Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+

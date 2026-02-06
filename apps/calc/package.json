@@ -1,11 +1,10 @@
-﻿{
+{
   "name": "@gadai/calc",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"console.log('TODO: scaffold calc')\"",
-    "build": "node -e \"console.log('TODO: build calc')\"",
-    "lint": "node -e \"console.log('TODO: lint calc')\"",
-    "test": "node -e \"console.log('TODO: test calc')\""
+    "dev": "ts-node-dev --respawn src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
   }
 }

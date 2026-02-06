@@ -1,15 +1,15 @@
-﻿{
+{
   "name": "@gadai/db",
-  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "generate": "prisma generate",
+    "prisma": "prisma",
     "migrate": "prisma migrate dev",
-    "push": "prisma db push",
-    "studio": "prisma studio"
+    "generate": "prisma generate"
   },
   "dependencies": {
-    "prisma": "^5.0.0",
-    "@prisma/client": "^5.0.0"
+    "@prisma/client": "^5.12.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.12.0"
   }
 }

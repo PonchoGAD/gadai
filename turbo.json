@@ -1,11 +1,13 @@
 ﻿{
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**"]
     },
     "lint": {},
     "test": {},
-    "dev": { "cache": false }
+    "dev": {
+      "cache": false
+    }
   }
 }

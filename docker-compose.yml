@@ -1,14 +1,15 @@
 ﻿services:
   postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: gadai
-      POSTGRES_USER: gadai
-      POSTGRES_PASSWORD: changeme
+    image: postgres:15
+    container_name: gadai-postgres
     ports:
       - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gadai
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
 
   redis:
     image: redis:7
@@ -63,5 +64,5 @@
       - api
 
 volumes:
-  postgres_data:
+  pgdata:
   minio_data:

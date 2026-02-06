@@ -1,11 +1,13 @@
-﻿{
+{
   "name": "@gadai/ai",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"console.log('TODO: scaffold ai')\"",
-    "build": "node -e \"console.log('TODO: build ai')\"",
-    "lint": "node -e \"console.log('TODO: lint ai')\"",
-    "test": "node -e \"console.log('TODO: test ai')\""
+    "dev": "ts-node-dev --respawn src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "openai": "^4.52.0"
   }
 }

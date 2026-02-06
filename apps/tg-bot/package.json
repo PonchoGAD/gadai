@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "dev": "node -e \"console.log('TG bot disabled in dev')\""
+  }
+}

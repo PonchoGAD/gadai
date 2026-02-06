@@ -1,11 +1,10 @@
-﻿{
+{
   "name": "@gadai/auth",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"console.log('TODO: scaffold auth')\"",
-    "build": "node -e \"console.log('TODO: build auth')\"",
-    "lint": "node -e \"console.log('TODO: lint auth')\"",
-    "test": "node -e \"console.log('TODO: test auth')\""
+    "dev": "ts-node-dev --respawn src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
   }
 }
