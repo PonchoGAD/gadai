@@ -1,0 +1,11 @@
+﻿{
+  "name": "@gadai/ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.log('TODO: scaffold ai')\"",
+    "build": "node -e \"console.log('TODO: build ai')\"",
+    "lint": "node -e \"console.log('TODO: lint ai')\"",
+    "test": "node -e \"console.log('TODO: test ai')\""
+  }
+}

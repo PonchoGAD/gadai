@@ -1,0 +1,19 @@
+﻿{
+  "name": "gadai",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "format": "prettier -w .",
+    "db:generate": "pnpm -C packages/db prisma generate",
+    "db:migrate": "pnpm -C packages/db prisma migrate dev",
+    "db:push": "pnpm -C packages/db prisma db push"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "prettier": "^3.3.0"
+  }
+}

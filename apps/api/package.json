@@ -1,0 +1,11 @@
+﻿{
+  "name": "@gadai/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.log('TODO: scaffold api')\"",
+    "build": "node -e \"console.log('TODO: build api')\"",
+    "lint": "node -e \"console.log('TODO: lint api')\"",
+    "test": "node -e \"console.log('TODO: test api')\""
+  }
+}

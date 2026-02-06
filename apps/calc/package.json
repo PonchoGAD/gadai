@@ -1,0 +1,11 @@
+﻿{
+  "name": "@gadai/calc",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.log('TODO: scaffold calc')\"",
+    "build": "node -e \"console.log('TODO: build calc')\"",
+    "lint": "node -e \"console.log('TODO: lint calc')\"",
+    "test": "node -e \"console.log('TODO: test calc')\""
+  }
+}

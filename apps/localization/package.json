@@ -1,0 +1,11 @@
+﻿{
+  "name": "@gadai/localization",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.log('TODO: scaffold localization')\"",
+    "build": "node -e \"console.log('TODO: build localization')\"",
+    "lint": "node -e \"console.log('TODO: lint localization')\"",
+    "test": "node -e \"console.log('TODO: test localization')\""
+  }
+}

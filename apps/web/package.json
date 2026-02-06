@@ -1,0 +1,11 @@
+﻿{
+  "name": "@gadai/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.log('TODO: scaffold web')\"",
+    "build": "node -e \"console.log('TODO: build web')\"",
+    "lint": "node -e \"console.log('TODO: lint web')\"",
+    "test": "node -e \"console.log('TODO: test web')\""
+  }
+}
