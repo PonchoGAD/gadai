@@ -1,5 +1,16 @@
 {
+  "name": "@gadai/tg-bot",
+  "private": true,
   "scripts": {
-    "dev": "node -e \"console.log('TG bot disabled in dev')\""
+    "dev": "ts-node-dev --respawn src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.1",
+    "typescript": "^5.9.3"
   }
 }
