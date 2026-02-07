@@ -1,20 +1,41 @@
-import Stripe from 'stripe';
 import { Injectable } from '@nestjs/common';
+import Stripe from 'stripe';
 
 @Injectable()
 export class StripeService {
-  private stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2023-08-16'
-  });
+  private stripe: Stripe;
 
-  createCheckoutSession(userId: string, priceId: string) {
-    return this.stripe.checkout.sessions.create({
+  constructor() {
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2023-08-16'
+    });
+  }
+
+  async createCheckoutSession(params: {
+    userId: string;
+    locale: 'EU' | 'US';
+  }) {
+    const priceId =
+      params.locale === 'EU'
+        ? 'price_eu_pro'
+        : 'price_us_pro';
+
+    const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      metadata: { userId },
-      success_url: `${process.env.WEB_URL}/success`,
-      cancel_url: `${process.env.WEB_URL}/cancel`
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1
+        }
+      ],
+      success_url: `${process.env.WEB_URL}/result?paid=true`,
+      cancel_url: `${process.env.WEB_URL}/result`,
+      metadata: {
+        userId: params.userId
+      }
     });
+
+    return session.url;
   }
 }

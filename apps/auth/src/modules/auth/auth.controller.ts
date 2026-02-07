@@ -5,11 +5,9 @@ import {
   Req,
   UseGuards
 } from '@nestjs/common';
-import { Request } from 'express';
-
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../../api/src/auth/jwt.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -23,7 +21,7 @@ export class AuthController {
   @Post('login')
   async login(
     @Body() body: LoginDto,
-    @Req() req: Request
+    @Req() req: any
   ) {
     return this.auth.login(body.email, body.password, {
       userAgent: req.headers['user-agent'],
@@ -34,7 +32,7 @@ export class AuthController {
   @Post('refresh')
   async refresh(
     @Body('refreshToken') token: string,
-    @Req() req: Request
+    @Req() req: any
   ) {
     return this.auth.refresh(token, {
       userAgent: req.headers['user-agent'],
@@ -44,7 +42,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: Request) {
+  async logout(@Req() req: any) {
     const user = req.user as { userId: string };
     return this.auth.logout(user.userId);
   }

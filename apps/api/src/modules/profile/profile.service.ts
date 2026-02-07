@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { getFeatures } from '../../features/feature.service';
 
 @Injectable()
 export class ProfileService {
@@ -26,7 +25,8 @@ export class ProfileService {
         userId,
         rawInput: input,
         facts: factsRes.data,
-        interpretation: aiRes.data
+        interpretation: aiRes.data,
+        tierUsed: input?.tierUsed ?? 'free'
       }
     });
 

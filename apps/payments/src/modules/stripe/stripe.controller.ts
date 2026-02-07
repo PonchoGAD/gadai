@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Req } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 
 @Controller('payments')
@@ -6,10 +6,16 @@ export class StripeController {
   constructor(private stripe: StripeService) {}
 
   @Post('checkout')
-  create(@Body() body: { userId: string; priceId: string }) {
-    return this.stripe.createCheckoutSession(
-      body.userId,
-      body.priceId
-    );
+  async checkout(@Req() req: any) {
+    const user = req.user; // из API Gateway / JWT
+
+    const checkoutUrl = await this.stripe.createCheckoutSession({
+      userId: user.id,
+      locale: user.locale || 'EU'
+    });
+
+    return {
+      checkoutUrl
+    };
   }
 }
