@@ -1,41 +1,65 @@
-import { Controller, Post, Body, Req, UseGuards, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  UnauthorizedException
+} from '@nestjs/common';
 import axios from 'axios';
 import { JwtAuthGuard } from '../../auth/jwt.guard';
-import { AI_LIMITS } from './ai.limits';
 import { FeatureService } from '../../features/feature.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Controller('ai')
 export class AiController {
-  constructor(private features: FeatureService) {}
+  constructor(
+    private features: FeatureService,
+    private prisma: PrismaService
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('dialogue')
-  async dialogue(@Req() req: any, @Body() body: { message?: string } = {}) {
+  async dialogue(
+    @Req() req: any,
+    @Body() body: { message?: string } = {}
+  ) {
     const user = req.user;
     if (!user) throw new UnauthorizedException();
 
-    // If user's plan disallows deep analysis, return paywall response
-    if (!this.features.canUseDeepAnalysis(user.plan)) {
+    const used = await this.prisma.aiUsage.count({
+      where: { userId: user.id }
+    });
+
+    const limit = this.features.aiMessageLimit(user);
+
+    if (used >= limit) {
       return {
-        data: { message: 'Базовый ответ без углубления' },
-        paywall: { show: true, reason: 'ai_dialogue_locked', plans: ['pro', 'premium'] }
+        message: 'Лимит диалога исчерпан',
+        paywall: this.features.getAiLimitPaywall()
       };
     }
 
-    const plan = (user.plan || 'free') as keyof typeof AI_LIMITS;
-    const limits = AI_LIMITS[plan];
+    const response = await axios.post(
+      `${process.env.AI_SERVICE_URL}/ai/dialogue`,
+      {
+        userId: user.id,
+        message: body.message
+      }
+    );
 
-    // simple usage check
-    if ((user.dailyMessages ?? 0) >= limits.messagesPerDay) {
-      throw new ForbiddenException({ reason: 'ai_limit_reached', upgrade: true });
-    }
-
-    const response = await axios.post(`${process.env.AI_SERVICE_URL}/ai/dialogue`, {
-      userId: user.userId,
-      message: body.message,
-      memoryDepth: limits.memoryDepth
+    // 🔢 usage counter
+    await this.prisma.aiUsage.create({
+      data: {
+        userId: user.id,
+        date: new Date(),
+        messages: 1
+      }
     });
 
-    return response.data;
+    return {
+      data: response.data,
+      paywall: { show: false }
+    };
   }
 }

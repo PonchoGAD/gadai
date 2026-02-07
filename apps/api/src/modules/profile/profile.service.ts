@@ -1,10 +1,16 @@
 import axios from 'axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { FeatureService } from '../../features/feature.service';
 
 @Injectable()
 export class ProfileService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private features: FeatureService
+  ) {}
+
+  /* ===================== BUILD PROFILE ===================== */
 
   async buildProfile(userId: string, input: any) {
     const factsRes = await axios.post(
@@ -20,7 +26,7 @@ export class ProfileService {
       }
     );
 
-    const profile = await this.prisma.profile.create({
+    return this.prisma.profile.create({
       data: {
         userId,
         rawInput: input,
@@ -29,9 +35,9 @@ export class ProfileService {
         tierUsed: input?.tierUsed ?? 'free'
       }
     });
-
-    return profile;
   }
+
+  /* ===================== HISTORY ===================== */
 
   async getAll(userId: string) {
     return this.prisma.profile.findMany({
@@ -40,47 +46,46 @@ export class ProfileService {
     });
   }
 
+  /* ===================== LAST PROFILE ===================== */
+
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId }
     });
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     const profile = await this.prisma.profile.findFirst({
-      where: { userId }
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
     });
 
-    if (!profile) {
-      throw new Error('Profile not found');
-    }
+    if (!profile) throw new NotFoundException('Profile not found');
 
-    const isFree = user.plan === 'free';
+    const interpretation =
+      typeof profile.interpretation === 'string'
+        ? JSON.parse(profile.interpretation)
+        : profile.interpretation;
 
-    const interpretation = typeof profile.interpretation === 'string' 
-      ? JSON.parse(profile.interpretation) 
-      : profile.interpretation;
+    const canDeep = this.features.canDeepAnalysis(user as any);
 
     return {
       data: {
         facts: profile.facts,
-        interpretation: isFree
-          ? {
-              summary: interpretation?.summary || 'Analysis summary',
-              note: 'Часть анализа доступна в полной версии'
+        interpretation: canDeep
+          ? interpretation
+          : {
+              summary: interpretation?.summary ?? 'Краткий разбор',
+              note: 'Полный разбор доступен в расширенной версии'
             }
-          : interpretation
       },
-      paywall: isFree
-        ? {
+      paywall: canDeep
+        ? { show: false }
+        : {
             show: true,
             reason: 'deep_analysis_locked',
-            message: 'Хочешь глубже и практичнее?',
             plans: ['pro', 'premium']
           }
-        : { show: false }
     };
   }
 }
