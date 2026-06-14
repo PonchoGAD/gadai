@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import NavBar from '@/components/layout/NavBar';
 
 const API_BASE = '/api/proxy';
 const TG_BOT   = 'https://t.me/gadai_sol_bot';
@@ -132,6 +133,8 @@ export default function LauncherPage() {
   }
 
   return (
+    <>
+    <NavBar />
     <main className="py-24 bg-[#0a0a0f] min-h-screen text-white">
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-6 text-center mb-16">
@@ -295,5 +298,6 @@ export default function LauncherPage() {
         </div>
       </div>
     </main>
+    </>
   );
 }
