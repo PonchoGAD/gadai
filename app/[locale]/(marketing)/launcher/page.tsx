@@ -1,358 +1,299 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 
-type Step = 'idea' | 'preview' | 'launch' | 'success';
+const API_BASE = '/api/proxy';
+const TG_BOT   = 'https://t.me/gadai_sol_bot';
 
-interface TokenMeta {
-  name: string;
-  symbol: string;
+interface LaunchForm {
+  name:        string;
+  ticker:      string;
   description: string;
-  twitter_text: string;
+  devBuySol:   string;
+  w2BuySol:    string;
+  w3BuySol:    string;
 }
 
-declare global {
-  interface Window {
-    solana?: {
-      isPhantom?: boolean;
-      connect: () => Promise<{ publicKey: { toString: () => string } }>;
-      signAndSendTransaction: (tx: any) => Promise<{ signature: string }>;
-    };
-  }
-}
+const PRINCIPLES = [
+  { icon: '🤖', text: 'GAD AI admin reviews & launches within minutes' },
+  { icon: '📌', text: 'Logo uploaded to Pinata IPFS — permanent & public' },
+  { icon: '⛓️',  text: 'Token deployed on pump.fun Solana blockchain' },
+  { icon: '🐋', text: 'Staggered 3-wallet buy: organic & safe pattern' },
+  { icon: '📡', text: 'Telegram notification on launch confirmation' },
+  { icon: '✅', text: 'No fake volume, no coordinated insider buys' },
+];
 
 export default function LauncherPage() {
-  const [step, setStep] = useState<Step>('idea');
-  const [idea, setIdea] = useState('');
-  const [solAmount, setSolAmount] = useState(0.1);
-  const [meta, setMeta] = useState<TokenMeta | null>(null);
-  const [editMeta, setEditMeta] = useState<TokenMeta | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
-  const [walletAddress, setWalletAddress] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [txSignature, setTxSignature] = useState('');
-  const [mintAddress, setMintAddress] = useState('');
+  const [form, setForm] = useState<LaunchForm>({
+    name: '', ticker: '', description: '',
+    devBuySol: '0.10', w2BuySol: '0.05', w3BuySol: '0.03',
+  });
+  const [image, setImage]             = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [status, setStatus]           = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [error, setError]             = useState('');
+  const [submitId, setSubmitId]       = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Connect Phantom
-  async function connectWallet() {
-    if (!window.solana?.isPhantom) {
-      alert('Phantom wallet not found. Install from phantom.app');
-      return;
-    }
-    const resp = await window.solana.connect();
-    setWalletAddress(resp.publicKey.toString());
+  function handleField(k: keyof LaunchForm, v: string) {
+    if (k === 'ticker') v = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    setForm(f => ({ ...f, [k]: v }));
   }
 
-  async function generateMeta() {
-    if (idea.trim().length < 5) { setError('Describe your idea (min 5 chars)'); return; }
-    setLoading(true); setError('');
-    try {
-      const r = await fetch('/api/ai-launcher/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea }),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error ?? 'Generation failed');
-      setMeta(data);
-      setEditMeta(data);
-      setStep('preview');
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImageFile(file);
+    if (file.size > 2 * 1024 * 1024) { setError('Image must be under 2MB'); return; }
+    setImage(file);
     setImagePreview(URL.createObjectURL(file));
+    setError('');
   }
 
-  async function launchToken() {
-    if (!walletAddress) { await connectWallet(); return; }
-    if (!editMeta) return;
-    setLoading(true); setError('');
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('Only image files allowed'); return; }
+    if (file.size > 2 * 1024 * 1024) { setError('Image must be under 2MB'); return; }
+    setImage(file);
+    setImagePreview(URL.createObjectURL(file));
+    setError('');
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name || !form.ticker || !form.description) {
+      setError('Name, ticker, and description are required.'); return;
+    }
+    if (!image) { setError('Please upload a logo image.'); return; }
+
+    setStatus('loading');
+    setError('');
+
     try {
-      const form = new FormData();
-      form.append('name', editMeta.name);
-      form.append('symbol', editMeta.symbol);
-      form.append('description', editMeta.description);
-      form.append('twitter', editMeta.twitter_text.slice(0, 200));
-      form.append('website', 'https://gadai.shop');
-      form.append('publicKey', walletAddress);
-      form.append('solAmount', String(solAmount));
-      if (imageFile) form.append('image', imageFile);
+      const imgB64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(image);
+      });
 
-      const r = await fetch('/api/ai-launcher/transaction', { method: 'POST', body: form });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error ?? 'Transaction creation failed');
+      const res = await fetch(`${API_BASE}/launcher/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          imageName: image.name,
+          imageType: image.type,
+          imageB64:  imgB64,
+          devBuySol: Number(form.devBuySol),
+          w2BuySol:  Number(form.w2BuySol),
+          w3BuySol:  Number(form.w3BuySol),
+        }),
+      });
 
-      // Deserialize and sign with Phantom
-      const { VersionedTransaction } = await import('@solana/web3.js');
-      const txBytes = new Uint8Array(Buffer.from(data.txBase64, 'base64'));
-      const tx = VersionedTransaction.deserialize(txBytes);
-
-      if (!window.solana) throw new Error('Phantom not connected');
-      const result = await window.solana.signAndSendTransaction(tx);
-
-      setTxSignature(result.signature);
-      // Derive mint from transaction (PumpPortal includes it in instruction)
-      setMintAddress(data.mintAddress ?? '');
-      setStep('success');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Submission failed');
+      setStatus('success');
+      setSubmitId(data.id ?? '');
     } catch (e: any) {
-      setError(e.message ?? 'Launch failed');
-    } finally {
-      setLoading(false);
+      setStatus('error');
+      setError(e.message);
     }
   }
 
-  const svgPlaceholder = editMeta
-    ? `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="%239945FF"/><text x="60" y="78" font-family="Arial Black" font-size="38" font-weight="900" fill="white" text-anchor="middle">${editMeta.symbol.slice(0,3)}</text></svg>`
-    : '';
+  if (status === 'success') {
+    return (
+      <main className="py-24 bg-[#0a0a0f] min-h-screen text-white flex items-center justify-center">
+        <div className="max-w-lg text-center px-6">
+          <div className="text-6xl mb-6">🚀</div>
+          <h1 className="text-3xl font-bold mb-4">Submitted!</h1>
+          <p className="text-gray-400 mb-6">
+            Your token idea has been queued. The GAD AI team will review and launch within minutes.
+            Watch{' '}<a href={TG_BOT} className="text-blue-400 underline">@gadai_sol_bot</a>{' '}for the launch confirmation.
+          </p>
+          {submitId && (
+            <p className="text-xs text-gray-600 font-mono">ID: {submitId}</p>
+          )}
+          <button
+            onClick={() => {
+              setStatus('idle');
+              setImage(null);
+              setImagePreview(null);
+              setForm({ name: '', ticker: '', description: '', devBuySol: '0.10', w2BuySol: '0.05', w3BuySol: '0.03' });
+            }}
+            className="mt-8 px-6 py-2 rounded-lg bg-[#18181f] border border-[#2a2a35] hover:border-blue-500/50 text-sm transition-colors"
+          >
+            Submit Another
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#0a0a0f', color: '#e2e8f0', fontFamily: 'monospace', padding: '24px 16px' }}>
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+    <main className="py-24 bg-[#0a0a0f] min-h-screen text-white">
+      {/* Hero */}
+      <section className="mx-auto max-w-4xl px-6 text-center mb-16">
+        <span className="inline-block px-3 py-1 rounded-full text-xs font-mono font-semibold bg-blue-900/40 text-blue-300 border border-blue-700/40 mb-6">
+          PUMP.FUN LAUNCHER
+        </span>
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+          🚀 Launch Your Token
+        </h1>
+        <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+          Create your Solana meme token on pump.fun in minutes.
+          Fill the form — GAD AI handles upload, deploy, and 3-wallet buy.
+        </p>
+      </section>
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🚀</div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#9945FF', margin: 0, letterSpacing: 2 }}>AI TOKEN LAUNCHER</h1>
-          <p style={{ color: '#64748b', marginTop: 8, fontSize: 14 }}>
-            Describe your idea → AI generates metadata → Launch on pump.fun
-          </p>
-        </div>
+      <div className="mx-auto max-w-5xl px-6 grid lg:grid-cols-2 gap-12">
 
-        {/* Steps */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, justifyContent: 'center' }}>
-          {(['idea', 'preview', 'launch', 'success'] as Step[]).map((s, i) => (
-            <div key={s} style={{
-              padding: '4px 12px', borderRadius: 4, fontSize: 12,
-              background: step === s ? '#9945FF' : '#1a1a2e',
-              color: step === s ? 'white' : '#64748b',
-              border: '1px solid ' + (step === s ? '#9945FF' : '#2d2d4a'),
-            }}>
-              {i + 1}. {s.toUpperCase()}
+        {/* Left: Form */}
+        <div>
+          <h2 className="text-xl font-bold mb-6">Token Details</h2>
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Token Name * (max 30)</label>
+              <input
+                type="text" maxLength={30} value={form.name}
+                onChange={e => handleField('name', e.target.value)}
+                placeholder="e.g. Moon Dog"
+                className="w-full px-4 py-3 rounded-lg bg-[#18181f] border border-[#2a2a35] focus:border-blue-500 outline-none text-white placeholder-gray-600 transition-colors"
+              />
             </div>
-          ))}
-        </div>
 
-        {error && (
-          <div style={{ background: '#2d1515', border: '1px solid #ff4d4d', borderRadius: 8, padding: 12, marginBottom: 16, color: '#ff8080', fontSize: 13 }}>
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* ── STEP 1: IDEA ── */}
-        {step === 'idea' && (
-          <div style={{ background: '#0f0f1a', border: '1px solid #2d2d4a', borderRadius: 12, padding: 24 }}>
-            <label style={{ display: 'block', marginBottom: 8, color: '#9945FF', fontSize: 13, fontWeight: 700 }}>
-              DESCRIBE YOUR TOKEN IDEA
-            </label>
-            <textarea
-              value={idea}
-              onChange={e => setIdea(e.target.value)}
-              placeholder="e.g. A pizza-obsessed dog who wants to rule the internet. Very degen. Much wow."
-              rows={4}
-              style={{
-                width: '100%', background: '#0a0a0f', border: '1px solid #3d3d5a',
-                borderRadius: 8, padding: 12, color: '#e2e8f0', fontSize: 14,
-                resize: 'vertical', outline: 'none', boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ marginTop: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b' }}>INITIAL BUY (SOL)</label>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Ticker * (max 8 chars)</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                 <input
-                  type="number"
-                  value={solAmount}
-                  onChange={e => setSolAmount(Number(e.target.value))}
-                  min={0.01} max={10} step={0.01}
-                  style={{
-                    display: 'block', marginTop: 4, width: 100,
-                    background: '#0a0a0f', border: '1px solid #3d3d5a',
-                    borderRadius: 6, padding: '6px 10px', color: '#e2e8f0',
-                    fontSize: 14, outline: 'none',
-                  }}
+                  type="text" maxLength={8} value={form.ticker}
+                  onChange={e => handleField('ticker', e.target.value)}
+                  placeholder="MOON"
+                  className="w-full pl-8 pr-4 py-3 rounded-lg bg-[#18181f] border border-[#2a2a35] focus:border-blue-500 outline-none text-white font-mono placeholder-gray-600 transition-colors"
                 />
               </div>
-              <button
-                onClick={generateMeta}
-                disabled={loading}
-                style={{
-                  flex: 1, marginTop: 20, padding: '12px 24px',
-                  background: loading ? '#3d3d5a' : 'linear-gradient(135deg, #9945FF, #14F195)',
-                  border: 'none', borderRadius: 8, color: 'white',
-                  fontSize: 15, fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
-                  letterSpacing: 1,
-                }}
-              >
-                {loading ? '⚡ GENERATING...' : '🤖 GENERATE WITH AI'}
-              </button>
             </div>
-          </div>
-        )}
 
-        {/* ── STEP 2: PREVIEW ── */}
-        {step === 'preview' && editMeta && (
-          <div style={{ background: '#0f0f1a', border: '1px solid #2d2d4a', borderRadius: 12, padding: 24 }}>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 20, alignItems: 'flex-start' }}>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Description *</label>
+              <textarea
+                rows={4} maxLength={500} value={form.description}
+                onChange={e => handleField('description', e.target.value)}
+                placeholder="The meme behind the next moonshot. Dogs going to the moon..."
+                className="w-full px-4 py-3 rounded-lg bg-[#18181f] border border-[#2a2a35] focus:border-blue-500 outline-none text-white placeholder-gray-600 resize-none transition-colors"
+              />
+              <p className="text-xs text-gray-600 mt-1">{form.description.length}/500</p>
+            </div>
+
+            {/* Logo upload */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Logo Image * (PNG/JPG, max 2MB)</label>
               <div
-                style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', border: '2px solid #9945FF', flexShrink: 0, cursor: 'pointer' }}
                 onClick={() => fileRef.current?.click()}
-                title="Click to upload image"
+                onDrop={handleDrop}
+                onDragOver={e => e.preventDefault()}
+                className="border-2 border-dashed border-[#2a2a35] hover:border-blue-500/50 rounded-xl p-6 text-center cursor-pointer transition-colors"
               >
-                <img src={imagePreview || svgPlaceholder} alt="token" width={80} height={80} style={{ objectFit: 'cover' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ color: '#64748b', fontSize: 11, marginBottom: 4 }}>click image to change ↑</div>
-                <div style={{ color: '#9945FF', fontWeight: 900, fontSize: 22 }}>${editMeta.symbol}</div>
-                <div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 16 }}>{editMeta.name}</div>
-              </div>
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
-
-            {/* Editable fields */}
-            <Field label="TOKEN NAME" value={editMeta.name} onChange={v => setEditMeta({ ...editMeta, name: v })} max={30} />
-            <Field label="SYMBOL" value={editMeta.symbol} onChange={v => setEditMeta({ ...editMeta, symbol: v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) })} max={6} />
-            <Field label="DESCRIPTION" value={editMeta.description} onChange={v => setEditMeta({ ...editMeta, description: v })} max={100} textarea />
-            <Field label="LAUNCH TWEET" value={editMeta.twitter_text} onChange={v => setEditMeta({ ...editMeta, twitter_text: v })} max={280} textarea />
-
-            <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-              <button onClick={() => setStep('idea')} style={{ padding: '10px 20px', background: '#1a1a2e', border: '1px solid #3d3d5a', borderRadius: 8, color: '#64748b', cursor: 'pointer' }}>
-                ← BACK
-              </button>
-              <button
-                onClick={() => setStep('launch')}
-                style={{ flex: 1, padding: '12px 24px', background: 'linear-gradient(135deg, #9945FF, #14F195)', border: 'none', borderRadius: 8, color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
-              >
-                LOOKS GOOD → LAUNCH
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 3: LAUNCH ── */}
-        {step === 'launch' && editMeta && (
-          <div style={{ background: '#0f0f1a', border: '1px solid #2d2d4a', borderRadius: 12, padding: 24 }}>
-            <h2 style={{ margin: '0 0 20px', color: '#9945FF', fontSize: 18 }}>READY TO LAUNCH ${editMeta.symbol}</h2>
-
-            <div style={{ background: '#0a0a0f', borderRadius: 8, padding: 16, marginBottom: 20, fontSize: 13 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ color: '#64748b' }}>Token</span>
-                <span style={{ color: '#14F195', fontWeight: 700 }}>${editMeta.symbol} — {editMeta.name}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ color: '#64748b' }}>Initial buy</span>
-                <span style={{ color: '#FFD700', fontWeight: 700 }}>{solAmount} SOL</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Network fee</span>
-                <span style={{ color: '#e2e8f0' }}>~0.005 SOL</span>
+                {imagePreview ? (
+                  <img src={imagePreview} alt="preview" className="h-24 w-24 object-cover rounded-lg mx-auto" />
+                ) : (
+                  <>
+                    <div className="text-3xl mb-2">🖼️</div>
+                    <p className="text-sm text-gray-500">Click or drag to upload logo</p>
+                  </>
+                )}
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
               </div>
             </div>
 
-            {walletAddress ? (
-              <div style={{ background: '#0d1f0d', border: '1px solid #14F195', borderRadius: 8, padding: 10, marginBottom: 16, fontSize: 12, color: '#14F195' }}>
-                ✅ Wallet: {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
+            {/* Buy amounts */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-3">Dev Buy Strategy (SOL)</label>
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  { label: 'W1 Dev', key: 'devBuySol' as const, hint: 'immediate' },
+                  { label: 'W2 +12min', key: 'w2BuySol' as const, hint: 'organic' },
+                  { label: 'W3 +28min', key: 'w3BuySol' as const, hint: 'organic' },
+                ] as const).map(({ label, key, hint }) => (
+                  <div key={key}>
+                    <label className="block text-xs text-gray-600 mb-1">{label}</label>
+                    <input
+                      type="number" step="0.01" min="0" max="10"
+                      value={form[key]}
+                      onChange={e => handleField(key, e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-[#18181f] border border-[#2a2a35] focus:border-blue-500 outline-none text-white text-sm font-mono transition-colors"
+                    />
+                    <p className="text-xs text-gray-700 mt-1">{hint}</p>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <button
-                onClick={connectWallet}
-                style={{ width: '100%', padding: 12, marginBottom: 16, background: '#1a1a2e', border: '1px solid #9945FF', borderRadius: 8, color: '#9945FF', fontSize: 14, cursor: 'pointer', fontWeight: 700 }}
-              >
-                🔗 CONNECT PHANTOM WALLET
-              </button>
+              <p className="text-xs text-gray-600 mt-2">
+                Total: ~{(Number(form.devBuySol) + Number(form.w2BuySol) + Number(form.w3BuySol)).toFixed(2)} SOL dev commitment
+              </p>
+            </div>
+
+            {(status === 'error' || error) && (
+              <div className="px-4 py-3 rounded-lg bg-red-900/30 border border-red-700/40 text-red-400 text-sm">
+                {error}
+              </div>
             )}
 
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setStep('preview')} style={{ padding: '10px 20px', background: '#1a1a2e', border: '1px solid #3d3d5a', borderRadius: 8, color: '#64748b', cursor: 'pointer' }}>
-                ← BACK
-              </button>
-              <button
-                onClick={launchToken}
-                disabled={loading || !walletAddress}
-                style={{
-                  flex: 1, padding: '14px 24px',
-                  background: loading ? '#3d3d5a' : 'linear-gradient(135deg, #FF6B6B, #9945FF)',
-                  border: 'none', borderRadius: 8, color: 'white',
-                  fontSize: 16, fontWeight: 900, cursor: loading ? 'wait' : 'pointer',
-                  letterSpacing: 1,
-                }}
-              >
-                {loading ? '🚀 LAUNCHING...' : '🔥 LAUNCH ON PUMP.FUN'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 4: SUCCESS ── */}
-        {step === 'success' && (
-          <div style={{ background: '#0d1f0d', border: '2px solid #14F195', borderRadius: 12, padding: 32, textAlign: 'center' }}>
-            <div style={{ fontSize: 60, marginBottom: 16 }}>🎉</div>
-            <h2 style={{ color: '#14F195', fontSize: 24, fontWeight: 900, margin: '0 0 8px' }}>TOKEN LAUNCHED!</h2>
-            <p style={{ color: '#86efac', marginBottom: 24 }}>Your token is live on pump.fun</p>
-
-            {txSignature && (
-              <a href={`https://solscan.io/tx/${txSignature}`} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'block', color: '#9945FF', textDecoration: 'none', marginBottom: 12, fontSize: 13 }}>
-                🔗 View transaction on Solscan →
-              </a>
-            )}
-            {mintAddress && (
-              <a href={`https://pump.fun/coin/${mintAddress}`} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'block', padding: '12px 24px', background: '#14F195', borderRadius: 8, color: '#0a0a0f', fontWeight: 900, textDecoration: 'none', marginBottom: 16 }}>
-                🚀 View on pump.fun
-              </a>
-            )}
             <button
-              onClick={() => { setStep('idea'); setIdea(''); setMeta(null); setEditMeta(null); setImageFile(null); setImagePreview(''); setTxSignature(''); setMintAddress(''); }}
-              style={{ padding: '10px 24px', background: '#1a1a2e', border: '1px solid #3d3d5a', borderRadius: 8, color: '#64748b', cursor: 'pointer' }}
+              type="submit" disabled={status === 'loading'}
+              className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors"
             >
-              Launch another token
+              {status === 'loading' ? '⏳ Submitting...' : '🚀 Submit for Launch'}
             </button>
-          </div>
-        )}
+            <p className="text-center text-xs text-gray-600">
+              GAD AI team reviews and launches on pump.fun. You receive a Telegram notification on launch.
+            </p>
+          </form>
+        </div>
 
-        {/* Info box */}
-        <div style={{ marginTop: 24, background: '#0f0f1a', border: '1px solid #2d2d4a', borderRadius: 8, padding: 16, fontSize: 12, color: '#64748b' }}>
-          <div style={{ fontWeight: 700, color: '#475569', marginBottom: 8 }}>HOW IT WORKS</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span>1. Describe your token idea in plain text</span>
-            <span>2. Claude AI generates name, ticker, description</span>
-            <span>3. Review and edit the generated metadata</span>
-            <span>4. Connect Phantom and launch on pump.fun</span>
+        {/* Right: Info */}
+        <div>
+          <h2 className="text-xl font-bold mb-6">How It Works</h2>
+          <div className="space-y-4 mb-10">
+            {[
+              { n: '01', t: 'Fill the form', d: 'Name, ticker (max 8), description, logo. Choose dev buy amounts across 3 wallets.' },
+              { n: '02', t: 'Submit', d: 'Your idea queues for review. GAD AI uploads logo to Pinata IPFS, creates metadata.' },
+              { n: '03', t: 'Auto-Launch', d: 'Token deployed on pump.fun via SDK. All 3 wallet buys execute with staggered timing.' },
+              { n: '04', t: 'Track & Sell', d: 'Monitor via /mycoins in Telegram. Sell your dev position when ready with /exitcoin.' },
+            ].map(s => (
+              <div key={s.n} className="bg-[#18181f] border border-[#2a2a35] rounded-xl p-4 flex gap-4">
+                <span className="text-2xl font-bold font-mono text-blue-500 shrink-0">{s.n}</span>
+                <div>
+                  <h3 className="font-semibold text-white">{s.t}</h3>
+                  <p className="mt-1 text-sm text-gray-400">{s.d}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <div style={{ marginTop: 12, color: '#374151' }}>
-            ⚠️ We charge a 0.005 SOL service fee per launch. Budget goes to liquidity.
+
+          <h2 className="text-xl font-bold mb-4">What You Get</h2>
+          <div className="bg-[#18181f] border border-[#2a2a35] rounded-2xl p-6 space-y-3">
+            {PRINCIPLES.map((p, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-lg">{p.icon}</span>
+                <p className="text-sm text-gray-300">{p.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 bg-blue-900/20 border border-blue-700/30 rounded-xl p-4">
+            <p className="text-sm text-blue-300">
+              📱 Track your launched tokens via{' '}
+              <a href={TG_BOT} className="underline">@gadai_sol_bot</a>:
+              <br />
+              <code className="text-xs">/mycoins</code> — positions |{' '}
+              <code className="text-xs">/exitcoin TICKER</code> — sell
+            </p>
           </div>
         </div>
       </div>
     </main>
-  );
-}
-
-function Field({ label, value, onChange, max, textarea }: {
-  label: string; value: string; onChange: (v: string) => void; max?: number; textarea?: boolean;
-}) {
-  const common = {
-    width: '100%', background: '#0a0a0f', border: '1px solid #3d3d5a',
-    borderRadius: 6, padding: '8px 10px', color: '#e2e8f0',
-    fontSize: 13, outline: 'none', boxSizing: 'border-box' as const, marginTop: 4,
-  };
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>{label} <span style={{ color: '#374151' }}>({value.length}/{max})</span></label>
-      {textarea
-        ? <textarea value={value} onChange={e => onChange(e.target.value)} rows={2} maxLength={max} style={{ ...common, resize: 'vertical' }} />
-        : <input value={value} onChange={e => onChange(e.target.value)} maxLength={max} style={common} />
-      }
-    </div>
   );
 }

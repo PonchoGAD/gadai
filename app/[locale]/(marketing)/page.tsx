@@ -151,6 +151,7 @@ export default function HomePage() {
           <a href="#features" className="nav-link">FEATURES</a>
           <a href="#alpha"    className="nav-link">ALPHA ENGINE</a>
           <a href="#pricing"  className="nav-link">PRICING</a>
+          <a href="/launcher" className="nav-link" style={{ color: '#14F195' }}>LAUNCH</a>
         </div>
         <a href={TG_BOT} target="_blank" rel="noopener noreferrer" className="nav-cta">
           ▶ OPEN BOT
@@ -177,6 +178,9 @@ export default function HomePage() {
             </a>
             <a href={TG_CHANNEL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
               📢 JOIN CHANNEL
+            </a>
+            <a href="/launcher" className="btn-secondary" style={{ borderColor: '#14F195', color: '#14F195' }}>
+              🪙 LAUNCH TOKEN
             </a>
           </div>
 
@@ -369,6 +373,43 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* LAUNCH TOKEN */}
+      <section className="section" id="launcher" style={{ background: 'rgba(20,241,149,.04)' }}>
+        <div className="container" style={{ textAlign: 'center' }}>
+          <span style={{
+            display: 'inline-block',
+            background: 'rgba(20,241,149,0.15)', color: '#14F195',
+            border: '1px solid #14F195', borderRadius: 4,
+            padding: '4px 12px', fontSize: 10, letterSpacing: 2, marginBottom: 16,
+          }}>NEW FEATURE</span>
+          <h2 className="section-title">🪙 LAUNCH YOUR OWN TOKEN</h2>
+          <p className="section-sub" style={{ maxWidth: 600, margin: '0 auto 32px' }}>
+            Submit your token idea — GAD AI handles everything else.
+            Pinata IPFS upload, pump.fun deploy, 3-wallet staggered buy for organic chart.
+          </p>
+          <div style={{ display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
+            {[
+              { icon: '🖼️', t: 'Upload Logo' },
+              { icon: '📌', t: 'IPFS Pinned' },
+              { icon: '⛓️', t: 'pump.fun Deploy' },
+              { icon: '🐋', t: '3-Wallet Buy' },
+              { icon: '📡', t: 'TG Notification' },
+            ].map(s => (
+              <div key={s.t} style={{
+                background: '#18181f', border: '1px solid rgba(20,241,149,0.2)',
+                borderRadius: 12, padding: '16px 20px', minWidth: 100,
+              }}>
+                <div style={{ fontSize: 28, marginBottom: 6 }}>{s.icon}</div>
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>{s.t}</div>
+              </div>
+            ))}
+          </div>
+          <a href="/launcher" className="btn-primary" style={{ background: '#14F195', color: '#0a0a0f', display: 'inline-block' }}>
+            🚀 Launch Your Token →
+          </a>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section className="cta-section">
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -405,6 +446,7 @@ export default function HomePage() {
           <a href="#alpha"     className="footer-link">Alpha Engine</a>
           <a href="#pricing"   className="footer-link">Pricing</a>
           <a href="/pay"       className="footer-link">Subscribe</a>
+          <a href="/launcher"  className="footer-link">Launch Token</a>
         </div>
         <div className="footer-copy" suppressHydrationWarning>
           © {new Date().getFullYear()} GAD AI · WAGMI
