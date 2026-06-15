@@ -7,10 +7,11 @@ const DEFAULT_LOCALE = 'en';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Ignore internal files
+  // Ignore internal files and non-localized standalone pages
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
+    pathname.startsWith('/pay') ||  // pay page lives at /pay, not /[locale]/pay
     PUBLIC_FILE.test(pathname)
   ) {
     return;
