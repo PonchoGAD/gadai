@@ -3,89 +3,117 @@
 import { useEffect, useState, useRef } from 'react';
 
 const TG_BOT     = 'https://t.me/gadai_sol_bot';
-const TG_CHANNEL = 'https://t.me/gadai_sol';
+const TG_CHANNEL = 'https://t.me/gadfamilytg';
 
 const TERMINAL_LINES = [
-  '> Scanning 14,293 tokens...',
+  '> Scanning 14,293 tokens across Solana / Base / BSC...',
   '> [REGIME] SIDEWAYS — wait for breakouts 📊',
   '> [WHALE] BONK: wallet 7xKp bought $420K 🐳',
-  '> [LIFECYCLE] WIF: HYPE stage → distribution risk ⚠️',
-  '> [OPPORTUNITY] $MOON — early window, score 87/100 🎯',
+  '> [BASE] PEPE/ETH → +38%/1h liq $24K — buying 0.001 ETH ⚡',
+  '> [BSC] MOON/BNB → +51%/1h score:76 — entry 0.003 BNB 🟡',
+  '> [RAYDIUM] $MOON — early window, score 87/100 🎯',
+  '> [COPY] @whale_7xKp bought 0.5 SOL of $PEPE — mirroring...',
   '> [ALPHA] 82% similar to 5 previous 50x winners 🧠',
   '> [RUG] ALERT dev wallet moving — caution ⚠️',
   '> [REPUTATION] Buyer: LEGEND wallet (72% win rate) 👑',
-  '> [SAFE] PEPE: risk score 94/100 ✅',
-  '> [SOCIAL] KOL @murad mentioned $BONK 🔥 engagement 9.2',
+  '> [BASE] UniV2 buy confirmed → entry $0.000142 ✅',
+  '> [BSC] Pancake scan: DOGE/BNB tax:3%/3% safe:81 — PASS',
   '> AI analysis: BULLISH signal detected',
-  '> Rug probability: 3% — you might survive',
   '> Portfolio P&L today: +69% 📈',
 ];
 
 const TICKER = [
   '🔥 BONK +420%', '💎 WIF +69%', '🌙 PEPE +1337%',
-  '🚀 MOON +228%', '💀 RUGGED x0', '🐋 WHALE ALERT',
+  '🚀 MOON +228%', '🔵 BASE +38%', '🟡 BSC +51%',
   '📊 AI SCAN LIVE', '⚡ SOLANA SPEED', '🎯 NGMI → WAGMI',
   '🔫 RUG DETECTED', '🌡️ REGIME: SIDEWAYS', '🧠 ALPHA MEMORY',
-  '🔄 LIFECYCLE: BIRTH', '👑 LEGEND WALLET', '📡 KOL SIGNAL',
+  '🔄 COPY-TRADE ON', '👑 LEGEND WALLET', '📡 KOL SIGNAL',
 ];
 
 const FEATURES = [
-  { icon: '📡', title: 'REAL-TIME SCANNER', desc: 'Scans 14K+ tokens every second across pump.fun, GMGN, Helius. Know about new gems before CT does.' },
-  { icon: '🐋', title: 'WHALE TRACKER',     desc: 'Big wallets move, you know instantly. Ape alongside the smart money. $5K+ moves tracked.' },
+  { icon: '📡', title: 'REAL-TIME SCANNER', desc: 'Scans 14K+ tokens every 30s across Solana, Base, and BSC. Know about new gems before CT does.' },
+  { icon: '🐋', title: 'WHALE TRACKER',     desc: 'Big wallets move, you know instantly. Ape alongside the smart money. $5K+ moves tracked live.' },
   { icon: '🤖', title: 'AI RISK SCORE',     desc: 'GAD Score 0–100. 6 weighted factors: momentum, liquidity, rug risk, narrative, social, survival.' },
-  { icon: '🔫', title: 'RUG DETECTOR',      desc: '9-flag rug probability engine. Checks liquidity locks, dev wallets, honeypots. Saves your bags.' },
-  { icon: '📊', title: 'PORTFOLIO P&L',     desc: 'Track all your positions in one terminal. See your gains. Accept your losses. Repeat.' },
-  { icon: '🚨', title: 'INSTANT ALERTS',    desc: 'Price pumps, whale buys, rug signals straight to Telegram. Sub-second delivery.' },
+  { icon: '🔄', title: 'COPY TRADING',      desc: 'Mirror top Solana wallets automatically. Helius polls every 5s — copies buys via Jupiter. 1.30x→3x TP.' },
+  { icon: '📊', title: 'MULTI-CHAIN PnL',   desc: 'Track Solana, Base ETH, and BSC BNB positions in one terminal. See your gains. Accept your losses.' },
+  { icon: '🚨', title: 'INSTANT ALERTS',    desc: 'Price pumps, whale buys, rug signals straight to Telegram. Sub-second delivery, zero delay.' },
 ];
 
 const ALPHA_FEATURES = [
   {
     icon: '🌡️',
     title: 'MARKET REGIME ENGINE',
-    desc: 'Auto-detects BULL / BEAR / SIDEWAYS / EUPHORIA / PANIC from CoinGecko + Fear&Greed Index. AI scores adapt to market context.',
-    tag: 'NEW',
+    desc: 'Auto-detects BULL / BEAR / SIDEWAYS / EUPHORIA / PANIC from CoinGecko + Fear&Greed. In FEAR mode it buys the dip — contrarian edge.',
+    tag: 'LIVE',
   },
   {
     icon: '🔄',
     title: 'MEME LIFECYCLE TRACKER',
     desc: 'Every token has a lifecycle: BIRTH → ACCUMULATION → BREAKOUT → HYPE → DISTRIBUTION → DEATH. Know exactly where a coin is.',
-    tag: 'NEW',
+    tag: 'LIVE',
   },
   {
     icon: '🎯',
     title: 'OPPORTUNITY ENGINE',
     desc: 'Finds tokens BEFORE they move. Narrative momentum + pre-breakout volume + whale accumulation = early alpha window.',
-    tag: 'NEW',
+    tag: 'LIVE',
   },
   {
     icon: '🧠',
     title: 'ALPHA MEMORY',
     desc: 'Compares every new token to historical 100x winners using cosine similarity. "This token is 82% similar to 5 previous 50x gems."',
-    tag: 'NEW',
+    tag: 'LIVE',
   },
   {
     icon: '👑',
     title: 'WALLET REPUTATION',
     desc: 'Classifies wallets as LEGEND / SMART / AVERAGE / TOURIST / EXIT_LIQUIDITY. Know if whales buying are actually smart money.',
-    tag: 'NEW',
+    tag: 'LIVE',
   },
   {
     icon: '📡',
     title: 'SOCIAL MONITOR',
     desc: 'Real-time KOL tracking on Twitter/X + Telegram channels. Detects when influencers mention tokens before the herd arrives.',
-    tag: 'NEW',
+    tag: 'LIVE',
+  },
+];
+
+const BOT_NETWORKS = [
+  {
+    icon: '🟣',
+    chain: 'SOLANA',
+    color: '#9945FF',
+    label: 'Auto-buy via Jupiter',
+    desc: 'Raydium DexScreener scanner. Market-regime-aware entries. MOVERS bonding curve scalper. Copy-trading via Helius. 5 TP tiers.',
+    stats: ['Raydium scanner', 'MOVERS scalper', 'Copy-trader', 'Jupiter DEX'],
+  },
+  {
+    icon: '🔵',
+    chain: 'BASE',
+    color: '#0052ff',
+    label: 'Auto-buy via Uniswap V2/V3',
+    desc: 'Scans meme tokens on Uniswap V2 + V3 + Aerodrome. Safety score, honeypot check. Trailing stop + 2-stage TP. 0.001 ETH per trade.',
+    stats: ['Uniswap V2/V3', 'Aerodrome V2', 'Safety score', 'Auto-sell'],
+  },
+  {
+    icon: '🟡',
+    chain: 'BSC',
+    color: '#f0b90b',
+    label: 'Auto-buy via PancakeSwap',
+    desc: 'BSC meme scanner via PancakeSwap. Tax-aware stop-loss (buy+sell tax in formula). Honeypot check. Anti-dump B/S ratio filter.',
+    stats: ['PancakeSwap V2', 'Tax-aware stops', 'Honeypot check', 'Auto-sell'],
   },
 ];
 
 const STEPS = [
   { num: '01', title: 'OPEN THE BOT',      desc: 'Hit /start in @gadai_sol_bot. Takes 10 seconds. Less time than your last rug.' },
   { num: '02', title: 'LINK YOUR WALLET',  desc: 'Use /link to connect your Solana wallet. Unlock subscription and wallet reputation tracking.' },
-  { num: '03', title: 'PROFIT (hopefully)', desc: 'Get regime-aware alerts, scan lifecycle stages, track KOL signals. WAGMI. (results not guaranteed, degen)' },
+  { num: '03', title: 'PROFIT (hopefully)', desc: 'Get regime-aware alerts, copy whale trades, track lifecycle stages, scan 3 chains. WAGMI.' },
 ];
 
 const STATS = [
-  { value: '14,293',  label: 'Tokens Scanned' },
-  { value: '$2.4B',   label: 'Volume Tracked' },
+  { value: '3',       label: 'Chains Scanned' },
+  { value: '14,293',  label: 'Tokens Tracked' },
   { value: '847',     label: 'Rugs Avoided' },
   { value: '6',       label: 'Alpha Engines' },
 ];
@@ -149,6 +177,7 @@ export default function HomePage() {
         <div className="nav-logo">GAD<span>AI</span> TERMINAL</div>
         <div className="nav-links">
           <a href="#features" className="nav-link">FEATURES</a>
+          <a href="#bots"     className="nav-link">BOT NETWORKS</a>
           <a href="#alpha"    className="nav-link">ALPHA ENGINE</a>
           <a href="#pricing"  className="nav-link">PRICING</a>
           <a href="/launcher" className="nav-link" style={{ color: '#14F195' }}>LAUNCH</a>
@@ -161,15 +190,15 @@ export default function HomePage() {
       {/* HERO */}
       <section className="hero">
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div className="hero-badge">⚡ LIVE ON SOLANA — ALPHA ENGINE v2 ONLINE</div>
+          <div className="hero-badge">⚡ LIVE ON SOLANA · BASE · BSC — 3 CHAINS, 1 BOT</div>
           <div className="pixel-bot">🤖</div>
           <h1 className="hero-title">
-            THE <span className="accent">SOLANA</span><br />
+            THE <span className="accent">MULTI-CHAIN</span><br />
             DEGEN <span className="accent2">TERMINAL</span>
           </h1>
           <p className="hero-sub">
-            Scan meme coins. Track <strong>whale wallets</strong>. Get AI risk scores.<br />
-            Detect rugs before they rekt you. Know the regime, track the lifecycle.<br />
+            Scan meme coins on <strong>Solana, Base &amp; BSC</strong>. Track whale wallets.<br />
+            Copy-trade top wallets. Get AI risk scores. Detect rugs.<br />
             <strong>All in your Telegram. All for free to start.</strong>
           </p>
           <div className="hero-btns">
@@ -188,7 +217,7 @@ export default function HomePage() {
           <div className="terminal-wrap">
             <div className="terminal-bar">
               <div className="t-dot t-red" /><div className="t-dot t-yellow" /><div className="t-dot t-green" />
-              <span style={{ marginLeft: 8 }}>gadai_sol_bot — alpha engine live</span>
+              <span style={{ marginLeft: 8 }}>gadai_sol_bot — 3-chain scanner live</span>
             </div>
             <div className="terminal" ref={termRef}>
               {termLines.map((line, i) => <div key={i} className="t-line">{line}</div>)}
@@ -238,8 +267,50 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ALPHA ENGINE — NEW Sprint 13 */}
-      <section className="section" id="alpha" style={{ background: 'rgba(20,241,149,.03)' }}>
+      {/* BOT NETWORKS — new section */}
+      <section className="section" id="bots" style={{ background: 'rgba(20,241,149,.02)' }}>
+        <div className="container">
+          <h2 className="section-title">BOT NETWORKS</h2>
+          <p className="section-sub">
+            Three independent auto-traders scanning different chains 24/7. One bot, one Telegram, three opportunities.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginTop: 32 }}>
+            {BOT_NETWORKS.map(n => (
+              <div key={n.chain} style={{
+                background: '#0d0d18',
+                border: `1px solid ${n.color}33`,
+                borderTop: `3px solid ${n.color}`,
+                padding: '24px 20px',
+                borderRadius: 2,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <span style={{ fontSize: 24 }}>{n.icon}</span>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 11, color: n.color, letterSpacing: 2 }}>{n.chain}</div>
+                    <div style={{ fontSize: 11, color: '#555570', marginTop: 2 }}>{n.label}</div>
+                  </div>
+                </div>
+                <p style={{ fontSize: 12, color: '#888', lineHeight: 1.7, marginBottom: 16 }}>{n.desc}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {n.stats.map(s => (
+                    <span key={s} style={{
+                      fontSize: 10, padding: '3px 8px',
+                      border: `1px solid ${n.color}44`,
+                      color: n.color, borderRadius: 2,
+                    }}>{s}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 11, color: '#555570' }}>
+            All bots run 24/7 on VPS · Telegram commands: /basestatus /bscstatus /bot /copywallets
+          </p>
+        </div>
+      </section>
+
+      {/* ALPHA ENGINE */}
+      <section className="section" id="alpha" style={{ background: 'rgba(153,69,255,.03)' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 8 }}>
             <span style={{
@@ -252,11 +323,11 @@ export default function HomePage() {
               fontSize: 10,
               fontFamily: 'var(--font-pixel)',
               letterSpacing: 2,
-            }}>ALPHA ENGINE v2 — JUST SHIPPED</span>
+            }}>ALPHA ENGINE v2 — LIVE</span>
           </div>
           <h2 className="section-title">THE ALPHA ENGINE</h2>
           <p className="section-sub">
-            Six new intelligence modules. The same tools hedge funds use. Now in your Telegram.
+            Six intelligence modules. The same tools hedge funds use. Now in your Telegram.
           </p>
           <div className="features-grid">
             {ALPHA_FEATURES.map(f => (
@@ -302,7 +373,7 @@ export default function HomePage() {
         <div className="container">
           <h2 className="section-title">PRICING</h2>
           <p className="section-sub">Paid in SOL, on-chain, no middleman. Cancel anytime by just not renewing.</p>
-          <div className="pricing-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', maxWidth: 900, margin: '0 auto' }}>
+          <div className="pricing-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', maxWidth: 1000, margin: '0 auto' }}>
 
             {/* FREE */}
             <div className="price-card">
@@ -315,20 +386,19 @@ export default function HomePage() {
                 <li><span className="check">✓</span> AI risk scores</li>
                 <li><span className="check">✓</span> GAD Score 0–100</li>
                 <li style={{ opacity: .4 }}><span>✗</span> Alpha Engine</li>
-                <li style={{ opacity: .4 }}><span>✗</span> Market Regime</li>
-                <li style={{ opacity: .4 }}><span>✗</span> Lifecycle Tracker</li>
-                <li style={{ opacity: .4 }}><span>✗</span> Wallet Reputation</li>
+                <li style={{ opacity: .4 }}><span>✗</span> Base/BSC bots</li>
+                <li style={{ opacity: .4 }}><span>✗</span> Copy Trading</li>
               </ul>
               <a href={TG_BOT} target="_blank" rel="noopener noreferrer" className="price-btn secondary">
                 START FREE
               </a>
             </div>
 
-            {/* TRIAL */}
+            {/* TRIAL 1D */}
             <div className="price-card">
               <div className="price-badge" style={{ background: 'rgba(20,241,149,0.15)', color: 'var(--green)', border: '1px solid var(--green)' }}>🧪 TRY FIRST</div>
-              <div className="price-tier">TRIAL</div>
-              <div className="price-amount">0.1 SOL</div>
+              <div className="price-tier">1-DAY TRIAL</div>
+              <div className="price-amount">0.05 SOL</div>
               <p className="price-period">/ 24 hours · full access</p>
               <ul className="price-features">
                 <li><span className="check">✓</span> Everything in Free</li>
@@ -337,28 +407,46 @@ export default function HomePage() {
                 <li><span className="check">✓</span> 🎯 Opportunity Engine</li>
                 <li><span className="check">✓</span> 🧠 Alpha Memory</li>
                 <li><span className="check">✓</span> 👑 Wallet Reputation</li>
-                <li><span className="check">✓</span> 📡 Social KOL Monitor</li>
                 <li><span className="check">✓</span> Unlimited whale alerts</li>
               </ul>
               <a href="/pay?plan=trial_1d" className="price-btn secondary" style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>
-                TRY FOR 0.1 SOL
+                TRY FOR 0.05 SOL
+              </a>
+            </div>
+
+            {/* TRIAL 3D */}
+            <div className="price-card" style={{ border: '1px solid rgba(20,241,149,0.4)' }}>
+              <div className="price-badge" style={{ background: 'rgba(20,241,149,0.2)', color: 'var(--green)', border: '1px solid var(--green)' }}>🔥 POPULAR</div>
+              <div className="price-tier">3-DAY ACCESS</div>
+              <div className="price-amount">0.1 SOL</div>
+              <p className="price-period">/ 72 hours · alpha included</p>
+              <ul className="price-features">
+                <li><span className="check">✓</span> Everything in 1-Day</li>
+                <li><span className="check">✓</span> 🔵 Base Network Bot</li>
+                <li><span className="check">✓</span> 🟡 BSC Bot</li>
+                <li><span className="check">✓</span> 🔄 Copy Trading</li>
+                <li><span className="check">✓</span> Portfolio P&amp;L</li>
+                <li><span className="check">✓</span> Smart money signals</li>
+                <li><span className="check">✓</span> X Trend signals</li>
+              </ul>
+              <a href="/pay?plan=trial_3d" className="price-btn secondary" style={{ borderColor: 'var(--green)', color: 'var(--green)' }}>
+                GET 3 DAYS 0.1 SOL
               </a>
             </div>
 
             {/* PRO */}
             <div className="price-card featured">
-              <div className="price-badge">🔥 MOST BASED</div>
+              <div className="price-badge">👑 MOST BASED</div>
               <div className="price-tier">PRO CHAD</div>
               <div className="price-amount">1.0 SOL</div>
               <p className="price-period">/ 30 days · paid on-chain</p>
               <ul className="price-features">
-                <li><span className="check">✓</span> Everything in Trial</li>
+                <li><span className="check">✓</span> Everything in 3-Day</li>
                 <li><span className="check">✓</span> Auto-buy via Jupiter DEX</li>
+                <li><span className="check">✓</span> Copy-trade top wallets</li>
                 <li><span className="check">✓</span> Custom alert thresholds</li>
-                <li><span className="check">✓</span> Portfolio P&amp;L tracking</li>
                 <li><span className="check">✓</span> Priority alpha channel</li>
                 <li><span className="check">✓</span> Real-time scanner (30s)</li>
-                <li><span className="check">✓</span> Smart money signals</li>
                 <li><span className="check">✓</span> Direct on-chain payment</li>
               </ul>
               <a href="/pay?plan=monthly" className="price-btn">
@@ -381,7 +469,7 @@ export default function HomePage() {
             background: 'rgba(20,241,149,0.15)', color: '#14F195',
             border: '1px solid #14F195', borderRadius: 4,
             padding: '4px 12px', fontSize: 10, letterSpacing: 2, marginBottom: 16,
-          }}>NEW FEATURE</span>
+          }}>PUMP.FUN LAUNCHER</span>
           <h2 className="section-title">🪙 LAUNCH YOUR OWN TOKEN</h2>
           <p className="section-sub" style={{ maxWidth: 600, margin: '0 auto 32px' }}>
             Submit your token idea — GAD AI handles everything else.
@@ -415,12 +503,12 @@ export default function HomePage() {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: 64, marginBottom: 24, display: 'block', animation: 'float 3s ease-in-out infinite' }}>🚀</div>
           <h2 className="cta-title">
-            STOP MISSING <span className="accent">100X GEMS</span><br />
-            NGMI → WAGMI
+            STOP MISSING <span className="accent">GEMS</span><br />
+            ON 3 CHAINS
           </h2>
           <p className="cta-sub">
-            Join degens already using GAD AI Terminal to scan, track, and ape smarter on Solana.<br />
-            <strong>Alpha Engine v2 is live.</strong> Market Regime. Lifecycle. Opportunity. Memory.
+            Solana. Base. BSC. One bot scans them all, copies the best wallets, and notifies you in Telegram.<br />
+            <strong>Alpha Engine v2 is live. Copy-trader is live. 3 chains online.</strong>
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href={TG_BOT}     target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: 13 }}>
@@ -443,13 +531,14 @@ export default function HomePage() {
           <a href={TG_BOT}     target="_blank" rel="noopener noreferrer" className="footer-link">Telegram Bot</a>
           <a href={TG_CHANNEL} target="_blank" rel="noopener noreferrer" className="footer-link">Channel</a>
           <a href="#features"  className="footer-link">Features</a>
+          <a href="#bots"      className="footer-link">Bot Networks</a>
           <a href="#alpha"     className="footer-link">Alpha Engine</a>
           <a href="#pricing"   className="footer-link">Pricing</a>
           <a href="/pay"       className="footer-link">Subscribe</a>
           <a href="/launcher"  className="footer-link">Launch Token</a>
         </div>
         <div className="footer-copy" suppressHydrationWarning>
-          © {new Date().getFullYear()} GAD AI · WAGMI
+          © {new Date().getFullYear()} GAD AI · Solana · Base · BSC · WAGMI
         </div>
       </footer>
     </>

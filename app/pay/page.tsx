@@ -10,7 +10,11 @@ import {
 } from '@solana/web3.js';
 
 const API_URL      = '/api/proxy';
-const SOLANA_RPC   = process.env.NEXT_PUBLIC_SOLANA_RPC     || 'https://api.mainnet-beta.solana.com';
+// Use server-side RPC proxy to avoid 403 from public mainnet-beta.solana.com
+// /api/rpc proxies through Vercel server → Helius (API key kept server-side, not in bundle)
+const SOLANA_RPC   = typeof window !== 'undefined'
+  ? `${window.location.origin}/api/rpc`
+  : '/api/rpc';
 const TREASURY_ENV = process.env.NEXT_PUBLIC_TREASURY_WALLET || '';
 
 interface Plan {
