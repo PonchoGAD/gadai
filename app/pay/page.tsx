@@ -112,13 +112,10 @@ export default function PayPage() {
 
       // Retry loop — blockhash expires in ~60s on mobile; rebuild tx + re-sign on expiry
       let signature = '';
-      let blockhash = '';
-      let lastValidBlockHeight = 0;
       const MAX_ATTEMPTS = 3;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        const bh = await connection.getLatestBlockhash('confirmed');
-        blockhash = bh.blockhash;
-        lastValidBlockHeight = bh.lastValidBlockHeight;
+        // 'finalized' gives a fully settled blockhash — less risk of expiry before sign
+        const bh = await connection.getLatestBlockhash('finalized');
 
         const transaction = new Transaction().add(
           SystemProgram.transfer({
@@ -127,20 +124,20 @@ export default function PayPage() {
             lamports,
           })
         );
-        transaction.recentBlockhash = blockhash;
+        transaction.recentBlockhash = bh.blockhash;
         transaction.feePayer        = new PublicKey(wallet);
 
-        if (attempt > 1) setError(`Blockhash expired, retrying... (attempt ${attempt}/${MAX_ATTEMPTS}). Please approve in wallet again.`);
+        if (attempt > 1) setError(`Retrying... (${attempt}/${MAX_ATTEMPTS}). Please approve in wallet again.`);
 
         const signed = await provider.signTransaction(transaction);
         try {
-          signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
-          setError(''); // clear retry message
+          signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: true, maxRetries: 3 });
+          setError('');
           break;
         } catch (sendErr: any) {
           const msg = sendErr?.message ?? '';
           if ((msg.includes('block height exceeded') || msg.includes('Blockhash not found')) && attempt < MAX_ATTEMPTS) {
-            continue; // rebuild tx with fresh blockhash and re-sign
+            continue;
           }
           throw sendErr;
         }
@@ -148,8 +145,27 @@ export default function PayPage() {
       if (!signature) throw new Error('Failed to send transaction after retries');
       setTxSig(signature);
 
+      // Poll getSignatureStatuses — no block height expiry unlike confirmTransaction
       setStep('confirming');
-      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+      const deadline = Date.now() + 90_000; // 90 second window
+      let confirmed = false;
+      while (Date.now() < deadline) {
+        try {
+          const { value: [status] } = await connection.getSignatureStatuses([signature]);
+          if (status?.err) throw new Error(`Transaction rejected by network: ${JSON.stringify(status.err)}`);
+          if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') {
+            confirmed = true;
+            break;
+          }
+        } catch (pollErr: any) {
+          if (pollErr?.message?.startsWith('Transaction rejected')) throw pollErr;
+        }
+        await new Promise(r => setTimeout(r, 2500));
+      }
+      if (!confirmed) {
+        // TX may have gone through — send to verify anyway (backend will find it on-chain)
+        setError('Confirmation timeout. Verifying on-chain anyway...');
+      }
 
       setStep('verifying');
       const verifyRes = await fetch(`${API_URL}/subscription/verify`, {
