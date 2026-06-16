@@ -110,19 +110,42 @@ export default function PayPage() {
       const connection = new Connection(SOLANA_RPC, 'confirmed');
       const lamports   = Math.round(selected.price_sol * LAMPORTS_PER_SOL);
 
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: new PublicKey(wallet),
-          toPubkey:   new PublicKey(treasury),
-          lamports,
-        })
-      );
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer        = new PublicKey(wallet);
+      // Retry loop — blockhash expires in ~60s on mobile; rebuild tx + re-sign on expiry
+      let signature = '';
+      let blockhash = '';
+      let lastValidBlockHeight = 0;
+      const MAX_ATTEMPTS = 3;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const bh = await connection.getLatestBlockhash('confirmed');
+        blockhash = bh.blockhash;
+        lastValidBlockHeight = bh.lastValidBlockHeight;
 
-      const signed    = await provider.signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: new PublicKey(wallet),
+            toPubkey:   new PublicKey(treasury),
+            lamports,
+          })
+        );
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer        = new PublicKey(wallet);
+
+        if (attempt > 1) setError(`Blockhash expired, retrying... (attempt ${attempt}/${MAX_ATTEMPTS}). Please approve in wallet again.`);
+
+        const signed = await provider.signTransaction(transaction);
+        try {
+          signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
+          setError(''); // clear retry message
+          break;
+        } catch (sendErr: any) {
+          const msg = sendErr?.message ?? '';
+          if ((msg.includes('block height exceeded') || msg.includes('Blockhash not found')) && attempt < MAX_ATTEMPTS) {
+            continue; // rebuild tx with fresh blockhash and re-sign
+          }
+          throw sendErr;
+        }
+      }
+      if (!signature) throw new Error('Failed to send transaction after retries');
       setTxSig(signature);
 
       setStep('confirming');
