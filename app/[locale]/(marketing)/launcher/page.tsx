@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import NavBar from '@/components/layout/NavBar';
 
 const API_BASE = '/api/proxy';
 const TG_BOT   = 'https://t.me/gadai_sol_bot';
+
+type Chain = 'SOLANA' | 'BSC' | 'BASE';
 
 interface LaunchForm {
   name:        string;
@@ -13,16 +16,59 @@ interface LaunchForm {
   devBuySol:   string;
   w2BuySol:    string;
   w3BuySol:    string;
+  chain:       Chain;
 }
 
-const PRINCIPLES = [
-  { icon: '🤖', text: 'GAD AI admin reviews & launches within minutes' },
-  { icon: '📌', text: 'Logo uploaded to Pinata IPFS — permanent & decentralized' },
-  { icon: '⛓️',  text: 'Token deployed on pump.fun via official SDK' },
-  { icon: '🐋', text: 'Staggered 3-wallet buy: organic & undetectable' },
-  { icon: '📡', text: 'Telegram notification on launch confirmation' },
-  { icon: '✅', text: 'No fake volume. No coordinated insider buys.' },
-];
+const CHAIN_META: Record<Chain, {
+  icon: string; color: string; accent: string;
+  platform: string; platformUrl: string;
+  unit: string; unitSymbol: string;
+  badge: string;
+  principles: { icon: string; text: string }[];
+}> = {
+  SOLANA: {
+    icon: '🟣', color: '#9945FF', accent: 'rgba(153,69,255,0.15)',
+    platform: 'pump.fun', platformUrl: 'https://pump.fun',
+    unit: 'SOL', unitSymbol: '◎',
+    badge: 'PUMP.FUN LAUNCHER',
+    principles: [
+      { icon: '🤖', text: 'GAD AI admin reviews & launches within minutes' },
+      { icon: '📌', text: 'Logo uploaded to Pinata IPFS — permanent & decentralized' },
+      { icon: '⛓️',  text: 'Token deployed on pump.fun via official SDK' },
+      { icon: '🐋', text: 'Staggered 3-wallet buy: organic & undetectable' },
+      { icon: '📡', text: 'Telegram notification on launch confirmation' },
+      { icon: '✅', text: 'No fake volume. No coordinated insider buys.' },
+    ],
+  },
+  BSC: {
+    icon: '🟡', color: '#F0B90B', accent: 'rgba(240,185,11,0.12)',
+    platform: '4meme.fun', platformUrl: 'https://4meme.fun',
+    unit: 'BNB', unitSymbol: 'BNB',
+    badge: '4MEME.FUN LAUNCHER',
+    principles: [
+      { icon: '🤖', text: 'GAD AI admin creates token on 4meme.fun for you' },
+      { icon: '📌', text: 'Logo uploaded to IPFS — permanent link in metadata' },
+      { icon: '🟡', text: 'Token launched on BSC via 4meme.fun bonding curve' },
+      { icon: '🐋', text: 'Dev buy on launch — organic entry point' },
+      { icon: '📡', text: 'Telegram notification when token is live on BSC' },
+      { icon: '🔒', text: 'PancakeSwap listing once bonding curve fills' },
+    ],
+  },
+  BASE: {
+    icon: '🔵', color: '#0052FF', accent: 'rgba(0,82,255,0.12)',
+    platform: 'clank.fun', platformUrl: 'https://clank.fun',
+    unit: 'ETH', unitSymbol: 'Ξ',
+    badge: 'CLANK.FUN LAUNCHER',
+    principles: [
+      { icon: '🤖', text: 'GAD AI admin creates token on clank.fun for you' },
+      { icon: '📌', text: 'Logo uploaded to IPFS — permanent & decentralized' },
+      { icon: '🔵', text: 'Token launched on Base via clank.fun bonding curve' },
+      { icon: '🐋', text: 'Dev buy on launch — organic Base chart entry' },
+      { icon: '📡', text: 'Telegram notification when Base token is live' },
+      { icon: '🦄', text: 'Uniswap V2 listing once bonding curve fills' },
+    ],
+  },
+};
 
 const inp: React.CSSProperties = {
   width: '100%',
@@ -48,9 +94,15 @@ const lbl: React.CSSProperties = {
 };
 
 export default function LauncherPage() {
-  const [form, setForm] = useState<LaunchForm>({
+  const searchParams = useSearchParams();
+  const [chain, setChain]     = useState<Chain>(() => {
+    const q = searchParams.get('chain');
+    return (q === 'BSC' || q === 'BASE' || q === 'SOLANA') ? q : 'SOLANA';
+  });
+  const [form, setForm]       = useState<LaunchForm>({
     name: '', ticker: '', description: '',
     devBuySol: '0.10', w2BuySol: '0.05', w3BuySol: '0.03',
+    chain: 'SOLANA',
   });
   const [image, setImage]               = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -58,6 +110,21 @@ export default function LauncherPage() {
   const [error, setError]               = useState('');
   const [submitId, setSubmitId]         = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const meta = CHAIN_META[chain];
+
+  function selectChain(c: Chain) {
+    setChain(c);
+    setForm(f => ({
+      ...f,
+      chain: c,
+      devBuySol: c === 'SOLANA' ? '0.10' : c === 'BSC' ? '0.05' : '0.002',
+      w2BuySol:  c === 'SOLANA' ? '0.05' : c === 'BSC' ? '0.02' : '0.001',
+      w3BuySol:  c === 'SOLANA' ? '0.03' : c === 'BSC' ? '0.01' : '0.0005',
+    }));
+    setStatus('idle');
+    setError('');
+  }
 
   function handleField(k: keyof LaunchForm, v: string) {
     if (k === 'ticker') v = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -113,6 +180,7 @@ export default function LauncherPage() {
           devBuySol: Number(form.devBuySol),
           w2BuySol:  Number(form.w2BuySol),
           w3BuySol:  Number(form.w3BuySol),
+          chain,
         }),
       });
 
@@ -132,11 +200,16 @@ export default function LauncherPage() {
         <NavBar />
         <main style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
           <div style={{ maxWidth: 480, textAlign: 'center' }}>
-            <div style={{ fontSize: 72, marginBottom: 20, lineHeight: 1 }}>🚀</div>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: 'var(--green)', fontFamily: 'var(--font-mono)', letterSpacing: 2, marginBottom: 16 }}>QUEUED</h1>
+            <div style={{ fontSize: 72, marginBottom: 20, lineHeight: 1 }}>{meta.icon}</div>
+            <h1 style={{ fontSize: 28, fontWeight: 900, color: meta.color, fontFamily: 'var(--font-mono)', letterSpacing: 2, marginBottom: 16 }}>
+              QUEUED FOR {chain}
+            </h1>
             <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.9, marginBottom: 24 }}>
-              Your token idea has been submitted. GAD AI team reviews and launches within minutes.{' '}
-              Watch <a href={TG_BOT} style={{ color: 'var(--purple)' }}>@gadai_sol_bot</a> for the launch TX.
+              Your {chain} token idea has been submitted. GAD AI team reviews and launches on{' '}
+              <a href={meta.platformUrl} target="_blank" rel="noopener noreferrer" style={{ color: meta.color }}>
+                {meta.platform}
+              </a>{' '}
+              within minutes. Watch <a href={TG_BOT} style={{ color: 'var(--purple)' }}>@gadai_sol_bot</a> for the launch TX.
             </p>
             {submitId && (
               <p style={{ fontSize: 10, color: 'var(--border)', fontFamily: 'var(--font-mono)', marginBottom: 28, letterSpacing: 1 }}>
@@ -146,7 +219,7 @@ export default function LauncherPage() {
             <button
               onClick={() => {
                 setStatus('idle'); setImage(null); setImagePreview(null);
-                setForm({ name: '', ticker: '', description: '', devBuySol: '0.10', w2BuySol: '0.05', w3BuySol: '0.03' });
+                setForm({ name: '', ticker: '', description: '', devBuySol: '0.10', w2BuySol: '0.05', w3BuySol: '0.03', chain });
               }}
               style={{
                 padding: '12px 28px', background: 'transparent',
@@ -163,7 +236,9 @@ export default function LauncherPage() {
     );
   }
 
-  const totalSol = (Number(form.devBuySol) + Number(form.w2BuySol) + Number(form.w3BuySol)).toFixed(2);
+  const totalSol = (Number(form.devBuySol) + Number(form.w2BuySol) + Number(form.w3BuySol)).toFixed(
+    chain === 'BASE' ? 4 : 2
+  );
 
   return (
     <>
@@ -171,23 +246,61 @@ export default function LauncherPage() {
       <main style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 80 }}>
 
         {/* Hero */}
-        <section style={{ textAlign: 'center', padding: '80px 24px 56px', position: 'relative', overflow: 'hidden' }}>
+        <section style={{ textAlign: 'center', padding: '80px 24px 48px', position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(153,69,255,.18) 0%, transparent 70%)',
+            background: `radial-gradient(ellipse 70% 50% at 50% 0%, ${meta.accent} 0%, transparent 70%)`,
             pointerEvents: 'none',
+            transition: 'background 0.3s',
           }} />
           <span style={{
             display: 'inline-block', padding: '5px 18px', borderRadius: 99,
-            fontSize: 10, letterSpacing: 2, color: 'var(--purple)',
-            border: '1px solid rgba(153,69,255,.5)', background: 'rgba(153,69,255,.1)',
+            fontSize: 10, letterSpacing: 2, color: meta.color,
+            border: `1px solid ${meta.color}88`, background: meta.accent,
             marginBottom: 24, fontFamily: 'var(--font-mono)',
-          }}>PUMP.FUN LAUNCHER</span>
+          }}>{meta.badge}</span>
           <h1 className="section-title" style={{ marginBottom: 16 }}>🚀 LAUNCH YOUR TOKEN</h1>
-          <p className="section-sub" style={{ maxWidth: 560, margin: '0 auto' }}>
-            Create your Solana meme token on pump.fun in minutes.
-            Fill the form — GAD AI handles IPFS upload, deploy, and 3-wallet staggered buy.
+          <p className="section-sub" style={{ maxWidth: 580, margin: '0 auto 32px' }}>
+            Create your meme token on{' '}
+            <a href={meta.platformUrl} target="_blank" rel="noopener noreferrer" style={{ color: meta.color }}>
+              {meta.platform}
+            </a>{' '}
+            in minutes. Fill the form — GAD AI handles IPFS upload, deploy, and staggered buy.
           </p>
+
+          {/* Chain Selector */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {(['SOLANA', 'BSC', 'BASE'] as Chain[]).map(c => {
+              const m = CHAIN_META[c];
+              const active = c === chain;
+              return (
+                <button
+                  key={c}
+                  onClick={() => selectChain(c)}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 8,
+                    border: `2px solid ${active ? m.color : 'var(--border)'}`,
+                    background: active ? m.accent : 'transparent',
+                    color: active ? m.color : 'var(--muted)',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-mono)',
+                    letterSpacing: 2,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{m.icon}</span>
+                  {c}
+                  <span style={{ fontSize: 9, opacity: 0.6 }}>{m.platform}</span>
+                </button>
+              );
+            })}
+          </div>
         </section>
 
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
@@ -195,6 +308,38 @@ export default function LauncherPage() {
 
             {/* ─── Form ─── */}
             <div>
+              {/* Chain info bar */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28,
+                padding: '12px 16px',
+                background: meta.accent,
+                border: `1px solid ${meta.color}44`,
+                borderRadius: 8,
+              }}>
+                <span style={{ fontSize: 22 }}>{meta.icon}</span>
+                <div>
+                  <div style={{ fontSize: 11, color: meta.color, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>
+                    {chain} — via {meta.platform}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                    Buy amounts in {meta.unit} · GAD AI launches for you
+                  </div>
+                </div>
+                <a
+                  href={meta.platformUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    marginLeft: 'auto', fontSize: 10, color: meta.color,
+                    border: `1px solid ${meta.color}55`, borderRadius: 4,
+                    padding: '4px 8px', fontFamily: 'var(--font-mono)',
+                    textDecoration: 'none', flexShrink: 0,
+                  }}
+                >
+                  ↗ {meta.platform}
+                </a>
+              </div>
+
               <p style={{ ...lbl, marginBottom: 24, fontSize: 11 }}>TOKEN DETAILS</p>
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -206,7 +351,7 @@ export default function LauncherPage() {
                     type="text" maxLength={30} value={form.name}
                     onChange={e => handleField('name', e.target.value)}
                     placeholder="e.g. Moon Dog"
-                    style={inp}
+                    style={{ ...inp, borderColor: form.name ? `${meta.color}66` : undefined }}
                   />
                 </div>
 
@@ -222,7 +367,7 @@ export default function LauncherPage() {
                       type="text" maxLength={8} value={form.ticker}
                       onChange={e => handleField('ticker', e.target.value)}
                       placeholder="MOON"
-                      style={{ ...inp, paddingLeft: 28 }}
+                      style={{ ...inp, paddingLeft: 28, borderColor: form.ticker ? `${meta.color}66` : undefined }}
                     />
                   </div>
                 </div>
@@ -233,7 +378,7 @@ export default function LauncherPage() {
                   <textarea
                     rows={4} maxLength={500} value={form.description}
                     onChange={e => handleField('description', e.target.value)}
-                    placeholder="The meme behind the next moonshot. Dogs going to the moon..."
+                    placeholder={chain === 'BSC' ? 'The next BNB memecoin. Dogs on BSC going to the moon...' : chain === 'BASE' ? 'Base is for builders. And degens. This is both...' : 'The meme behind the next moonshot. Dogs going to the moon...'}
                     style={{ ...inp, resize: 'vertical' as const, lineHeight: 1.7 }}
                   />
                   <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, opacity: .4, fontFamily: 'var(--font-mono)' }}>
@@ -249,13 +394,13 @@ export default function LauncherPage() {
                     onDrop={handleDrop}
                     onDragOver={e => e.preventDefault()}
                     style={{
-                      border: '2px dashed var(--border)', borderRadius: 12, padding: '28px 20px',
+                      border: `2px dashed var(--border)`, borderRadius: 12, padding: '28px 20px',
                       textAlign: 'center', cursor: 'pointer', transition: 'border-color .2s, background .2s',
                       background: 'var(--bg2)',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = 'var(--purple)';
-                      e.currentTarget.style.background = 'rgba(153,69,255,.05)';
+                      e.currentTarget.style.borderColor = meta.color;
+                      e.currentTarget.style.background = meta.accent;
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.borderColor = 'var(--border)';
@@ -265,7 +410,7 @@ export default function LauncherPage() {
                     {imagePreview ? (
                       <div>
                         <img src={imagePreview} alt="preview" style={{ height: 80, width: 80, objectFit: 'cover', borderRadius: 10, margin: '0 auto 8px' }} />
-                        <p style={{ fontSize: 11, color: 'var(--green)', fontFamily: 'var(--font-mono)' }}>✓ {image?.name}</p>
+                        <p style={{ fontSize: 11, color: meta.color, fontFamily: 'var(--font-mono)' }}>✓ {image?.name}</p>
                       </div>
                     ) : (
                       <>
@@ -280,7 +425,7 @@ export default function LauncherPage() {
 
                 {/* Buy strategy */}
                 <div>
-                  <label style={lbl}>Dev Buy Strategy <span style={{ opacity: .4 }}>(SOL per wallet)</span></label>
+                  <label style={lbl}>Dev Buy Strategy <span style={{ opacity: .4 }}>({meta.unit} per wallet)</span></label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                     {([
                       { label: 'W1 DEV', key: 'devBuySol' as const, hint: 'instant' },
@@ -290,7 +435,9 @@ export default function LauncherPage() {
                       <div key={key}>
                         <p style={{ ...lbl, marginBottom: 5 }}>{lbl2}</p>
                         <input
-                          type="number" step="0.01" min="0" max="10"
+                          type="number"
+                          step={chain === 'BASE' ? '0.0001' : '0.01'}
+                          min="0" max={chain === 'BASE' ? '1' : '10'}
                           value={form[key]}
                           onChange={e => handleField(key, e.target.value)}
                           style={{ ...inp, padding: '10px 10px' }}
@@ -300,11 +447,11 @@ export default function LauncherPage() {
                     ))}
                   </div>
                   <div style={{
-                    marginTop: 10, padding: '8px 12px', background: 'rgba(153,69,255,.06)',
-                    border: '1px solid rgba(153,69,255,.2)', borderRadius: 6,
+                    marginTop: 10, padding: '8px 12px', background: meta.accent,
+                    border: `1px solid ${meta.color}33`, borderRadius: 6,
                   }}>
                     <p style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
-                      TOTAL COMMITMENT: <span style={{ color: 'var(--purple)', fontWeight: 700 }}>~{totalSol} SOL</span>
+                      TOTAL COMMITMENT: <span style={{ color: meta.color, fontWeight: 700 }}>~{totalSol} {meta.unit}</span>
                     </p>
                   </div>
                 </div>
@@ -326,18 +473,21 @@ export default function LauncherPage() {
                   disabled={status === 'loading'}
                   style={{
                     padding: '15px', borderRadius: 10, border: 'none',
-                    background: status === 'loading' ? 'var(--bg2)' : 'linear-gradient(135deg, var(--purple), #7b2ff7)',
-                    color: '#fff', fontSize: 12, fontWeight: 900, letterSpacing: 2,
+                    background: status === 'loading'
+                      ? 'var(--bg2)'
+                      : `linear-gradient(135deg, ${meta.color}, ${meta.color}cc)`,
+                    color: chain === 'BSC' ? '#000' : '#fff',
+                    fontSize: 12, fontWeight: 900, letterSpacing: 2,
                     cursor: status === 'loading' ? 'not-allowed' : 'pointer',
                     fontFamily: 'var(--font-mono)', opacity: status === 'loading' ? .5 : 1,
                     transition: 'opacity .2s, transform .1s',
-                    boxShadow: status !== 'loading' ? '0 0 20px rgba(153,69,255,.3)' : 'none',
+                    boxShadow: status !== 'loading' ? `0 0 20px ${meta.color}44` : 'none',
                   }}
                 >
-                  {status === 'loading' ? '⏳ SUBMITTING...' : '🚀 SUBMIT FOR LAUNCH'}
+                  {status === 'loading' ? '⏳ SUBMITTING...' : `🚀 LAUNCH ON ${meta.platform.toUpperCase()}`}
                 </button>
                 <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted)', opacity: .4, lineHeight: 1.6 }}>
-                  Team reviews in minutes and launches on pump.fun.<br />Telegram notification on launch.
+                  Team reviews in minutes and launches on {meta.platform}.<br />Telegram notification on launch.
                 </p>
               </form>
             </div>
@@ -348,22 +498,26 @@ export default function LauncherPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 36 }}>
                 {[
-                  { n: '01', t: 'Fill the form', d: 'Name, ticker (max 8), description, logo. Choose dev buy amounts across 3 wallets for organic chart.' },
-                  { n: '02', t: 'Submit to queue', d: 'Your idea queues for review. GAD AI uploads logo to Pinata IPFS, creates metadata JSON.' },
-                  { n: '03', t: 'Auto-Launch on pump.fun', d: 'Token deployed via pumpdotfun-sdk. W1 buys instantly, W2 +12min, W3 +28min — staggered timing.' },
-                  { n: '04', t: 'Track & Sell', d: 'Monitor via /mycoins in @gadai_sol_bot. Sell your dev position when ready with /exitcoin TICKER.' },
+                  { n: '01', t: 'Fill the form', d: `Name, ticker (max 8), description, logo. Choose dev buy amounts in ${meta.unit} across 3 wallets.` },
+                  { n: '02', t: 'Submit to queue', d: `Your idea queues for review. GAD AI uploads logo to Pinata IPFS, creates metadata JSON.` },
+                  { n: '03', t: `Auto-Launch on ${meta.platform}`, d: chain === 'SOLANA'
+                    ? 'Token deployed via pumpdotfun-sdk. W1 buys instantly, W2 +12min, W3 +28min — staggered timing.'
+                    : chain === 'BSC'
+                    ? 'Token launched on 4meme.fun bonding curve. Dev buy sets the first green candle. PancakeSwap listing on graduation.'
+                    : 'Token launched on clank.fun bonding curve on Base. Dev buy creates organic first candle. Uniswap V2 listing on graduation.' },
+                  { n: '04', t: 'Track & Sell', d: `Monitor via /mycoins in @gadai_sol_bot. Exit your dev position when ready.` },
                 ].map(s => (
                   <div key={s.n} style={{
                     background: 'var(--bg2)', border: '1px solid var(--border)',
                     borderRadius: 12, padding: '16px 18px', display: 'flex', gap: 16, alignItems: 'flex-start',
                     transition: 'border-color .2s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(153,69,255,.4)')}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = `${meta.color}55`)}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                   >
                     <span style={{
                       fontSize: 22, fontWeight: 900, fontFamily: 'var(--font-mono)',
-                      color: 'var(--purple)', flexShrink: 0, lineHeight: 1.1,
+                      color: meta.color, flexShrink: 0, lineHeight: 1.1,
                     }}>{s.n}</span>
                     <div>
                       <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{s.t}</h3>
@@ -378,16 +532,43 @@ export default function LauncherPage() {
                 background: 'var(--bg2)', border: '1px solid var(--border)',
                 borderRadius: 14, overflow: 'hidden',
               }}>
-                {PRINCIPLES.map((p, i) => (
+                {meta.principles.map((p, i) => (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 14,
                     padding: '13px 20px',
-                    borderBottom: i < PRINCIPLES.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                    borderBottom: i < meta.principles.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
                   }}>
                     <span style={{ fontSize: 18, flexShrink: 0 }}>{p.icon}</span>
                     <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{p.text}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* Platform links */}
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                {(['SOLANA', 'BSC', 'BASE'] as Chain[]).map(c => {
+                  const m = CHAIN_META[c];
+                  const active = c === chain;
+                  return (
+                    <a
+                      key={c}
+                      href={m.platformUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'block', padding: '10px 8px', textAlign: 'center',
+                        background: active ? m.accent : 'var(--bg2)',
+                        border: `1px solid ${active ? m.color : 'var(--border)'}`,
+                        borderRadius: 8, textDecoration: 'none',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>{m.icon}</div>
+                      <div style={{ fontSize: 9, color: m.color, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>{c}</div>
+                      <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>{m.platform}</div>
+                    </a>
+                  );
+                })}
               </div>
 
               <div style={{

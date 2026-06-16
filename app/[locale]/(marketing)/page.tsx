@@ -179,8 +179,8 @@ export default function HomePage() {
           <a href="#features" className="nav-link">FEATURES</a>
           <a href="#bots"     className="nav-link">BOT NETWORKS</a>
           <a href="#alpha"    className="nav-link">ALPHA ENGINE</a>
+          <a href="#launch"   className="nav-link" style={{ color: '#14F195' }}>LAUNCH</a>
           <a href="#pricing"  className="nav-link">PRICING</a>
-          <a href="/launcher" className="nav-link" style={{ color: '#14F195' }}>LAUNCH</a>
         </div>
         <a href={TG_BOT} target="_blank" rel="noopener noreferrer" className="nav-cta">
           ▶ OPEN BOT
@@ -365,6 +365,91 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* LAUNCH */}
+      <section className="section" id="launch" style={{ background: 'rgba(20,241,149,.02)' }}>
+        <div className="container">
+          <h2 className="section-title">LAUNCH YOUR TOKEN</h2>
+          <p className="section-sub">
+            Deploy meme coins on 3 chains in minutes. GAD AI handles IPFS, deploy, and staggered 3-wallet buy.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginTop: 36 }}>
+            {[
+              {
+                icon: '🟣', chain: 'SOLANA', color: '#9945FF',
+                platform: 'pump.fun', platformUrl: 'https://pump.fun',
+                unit: 'SOL', badge: 'FULLY AUTOMATED',
+                desc: 'Full automation via pumpdotfun-sdk. Pinata IPFS metadata. 3-wallet staggered buy (instant / +12min / +28min). Sub-minute launch.',
+                features: ['Pinata IPFS', 'pumpdotfun-sdk', '3-wallet buy', 'Raydium graduation'],
+              },
+              {
+                icon: '🟡', chain: 'BSC', color: '#F0B90B',
+                platform: '4meme.fun', platformUrl: 'https://4meme.fun',
+                unit: 'BNB', badge: '4MEME LAUNCH',
+                desc: 'Submit your token idea — GAD AI launches on 4meme.fun bonding curve. Dev buy sets the first candle. PancakeSwap on graduation.',
+                features: ['4meme.fun', 'Dev buy', 'PancakeSwap', 'BSC chain'],
+              },
+              {
+                icon: '🔵', chain: 'BASE', color: '#0052FF',
+                platform: 'clank.fun', platformUrl: 'https://clank.fun',
+                unit: 'ETH', badge: 'BASE LAUNCH',
+                desc: 'Submit your token idea — GAD AI launches on clank.fun bonding curve on Base. Dev buy creates organic first candle. Uniswap V2 on graduation.',
+                features: ['clank.fun', 'Dev buy', 'Uniswap V2', 'Base chain'],
+              },
+            ].map(n => (
+              <div key={n.chain} style={{
+                background: '#0d0d18',
+                border: `1px solid ${n.color}33`,
+                borderTop: `3px solid ${n.color}`,
+                padding: '24px 20px',
+                borderRadius: 2,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 24 }}>{n.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 11, color: n.color, letterSpacing: 2 }}>{n.chain}</div>
+                    <div style={{ fontSize: 10, color: '#555570', marginTop: 2 }}>via {n.platform}</div>
+                  </div>
+                  <span style={{
+                    fontSize: 9, padding: '2px 7px',
+                    background: `${n.color}22`, color: n.color,
+                    border: `1px solid ${n.color}44`, borderRadius: 3,
+                    fontFamily: 'var(--font-pixel)',
+                  }}>{n.badge}</span>
+                </div>
+                <p style={{ fontSize: 12, color: '#888', lineHeight: 1.7, marginBottom: 14 }}>{n.desc}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+                  {n.features.map(f => (
+                    <span key={f} style={{
+                      fontSize: 10, padding: '3px 8px',
+                      border: `1px solid ${n.color}44`,
+                      color: n.color, borderRadius: 2,
+                    }}>{f}</span>
+                  ))}
+                </div>
+                <a
+                  href={`/launcher?chain=${n.chain}`}
+                  style={{
+                    display: 'block', textAlign: 'center',
+                    padding: '10px', borderRadius: 6,
+                    background: `${n.color}22`,
+                    border: `1px solid ${n.color}55`,
+                    color: n.color, fontSize: 11,
+                    fontFamily: 'var(--font-pixel)',
+                    letterSpacing: 1, textDecoration: 'none',
+                  }}
+                >
+                  🚀 LAUNCH ON {n.chain}
+                </a>
+              </div>
+            ))}
+          </div>
+          <p style={{ textAlign: 'center', marginTop: 28, fontSize: 12, color: '#555570' }}>
+            Submit via the form — GAD AI team handles launch within minutes.
+            Track via <a href="https://t.me/gadai_sol_bot" style={{ color: '#14F195' }}>@gadai_sol_bot</a>
+          </p>
         </div>
       </section>
 
