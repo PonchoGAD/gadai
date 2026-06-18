@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
+const LiveDashboard = lazy(() => import('./components/LiveDashboard'));
 
 const TG_BOT     = 'https://t.me/gadai_sol_bot';
 const TG_CHANNEL = 'https://t.me/gadfamilytg';
 
 const TERMINAL_LINES = [
-  '> Scanning 14,293 tokens across Solana / Base / BSC...',
+  '> Scanning 14,293 tokens across Solana / Base / BSC / TON...',
   '> [REGIME] SIDEWAYS — wait for breakouts 📊',
   '> [WHALE] BONK: wallet 7xKp bought $420K 🐳',
   '> [BASE] PEPE/ETH → +38%/1h liq $24K — buying 0.001 ETH ⚡',
   '> [BSC] MOON/BNB → +51%/1h score:76 — entry 0.003 BNB 🟡',
+  '> [TON] DOGS/TON → +53%/1h via STON.fi — entry 5 TON 💎',
   '> [RAYDIUM] $MOON — early window, score 87/100 🎯',
   '> [COPY] @whale_7xKp bought 0.5 SOL of $PEPE — mirroring...',
   '> [ALPHA] 82% similar to 5 previous 50x winners 🧠',
@@ -18,6 +20,7 @@ const TERMINAL_LINES = [
   '> [REPUTATION] Buyer: LEGEND wallet (72% win rate) 👑',
   '> [BASE] UniV2 buy confirmed → entry $0.000142 ✅',
   '> [BSC] Pancake scan: DOGE/BNB tax:3%/3% safe:81 — PASS',
+  '> [TON] STON.fi scan: 156 Jettons · 4 passed all filters',
   '> AI analysis: BULLISH signal detected',
   '> Portfolio P&L today: +69% 📈',
 ];
@@ -25,9 +28,11 @@ const TERMINAL_LINES = [
 const TICKER = [
   '🔥 BONK +420%', '💎 WIF +69%', '🌙 PEPE +1337%',
   '🚀 MOON +228%', '🔵 BASE +38%', '🟡 BSC +51%',
+  '💎 TON +53%', '⚓ DOGS/TON via STON.fi',
   '📊 AI SCAN LIVE', '⚡ SOLANA SPEED', '🎯 NGMI → WAGMI',
   '🔫 RUG DETECTED', '🌡️ REGIME: SIDEWAYS', '🧠 ALPHA MEMORY',
   '🔄 COPY-TRADE ON', '👑 LEGEND WALLET', '📡 KOL SIGNAL',
+  '4 CHAINS · 1 BOT',
 ];
 
 const FEATURES = [
@@ -103,6 +108,14 @@ const BOT_NETWORKS = [
     desc: 'BSC meme scanner via PancakeSwap. Tax-aware stop-loss (buy+sell tax in formula). Honeypot check. Anti-dump B/S ratio filter.',
     stats: ['PancakeSwap V2', 'Tax-aware stops', 'Honeypot check', 'Auto-sell'],
   },
+  {
+    icon: '💎',
+    chain: 'TON',
+    color: '#0098ea',
+    label: 'Auto-buy via STON.fi',
+    desc: 'TON Network Jetton scanner via GeckoTerminal + DexScreener. Buys/sells via STON.fi v1 router. tonapi.io safety checks. 5-stage TP levels.',
+    stats: ['STON.fi v1', 'tonapi.io safety', 'WalletV4', 'Auto-sell'],
+  },
 ];
 
 const STEPS = [
@@ -112,10 +125,10 @@ const STEPS = [
 ];
 
 const STATS = [
-  { value: '3',       label: 'Chains Scanned' },
+  { value: '4',       label: 'Chains Scanned' },
   { value: '14,293',  label: 'Tokens Tracked' },
   { value: '847',     label: 'Rugs Avoided' },
-  { value: '6',       label: 'Alpha Engines' },
+  { value: '7',       label: 'Alpha Engines' },
 ];
 
 function seededRand(seed: number) {
@@ -190,14 +203,14 @@ export default function HomePage() {
       {/* HERO */}
       <section className="hero">
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div className="hero-badge">⚡ LIVE ON SOLANA · BASE · BSC — 3 CHAINS, 1 BOT</div>
+          <div className="hero-badge">⚡ LIVE ON SOLANA · BASE · BSC · TON — 4 CHAINS, 1 BOT</div>
           <div className="pixel-bot">🤖</div>
           <h1 className="hero-title">
             THE <span className="accent">MULTI-CHAIN</span><br />
             DEGEN <span className="accent2">TERMINAL</span>
           </h1>
           <p className="hero-sub">
-            Scan meme coins on <strong>Solana, Base &amp; BSC</strong>. Track whale wallets.<br />
+            Scan meme coins on <strong>Solana, Base, BSC &amp; TON</strong>. Track whale wallets.<br />
             Copy-trade top wallets. Get AI risk scores. Detect rugs.<br />
             <strong>All in your Telegram. All for free to start.</strong>
           </p>
@@ -233,6 +246,11 @@ export default function HomePage() {
           {tickerDouble.map((item, i) => <span key={i} className="ticker-item">{item}</span>)}
         </div>
       </div>
+
+      {/* LIVE DASHBOARD */}
+      <Suspense fallback={null}>
+        <LiveDashboard />
+      </Suspense>
 
       {/* CORE FEATURES */}
       <section className="section" id="features" style={{ background: 'rgba(153,69,255,.03)' }}>
@@ -304,7 +322,7 @@ export default function HomePage() {
             ))}
           </div>
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 11, color: '#555570' }}>
-            All bots run 24/7 on VPS · Telegram commands: /basestatus /bscstatus /bot /copywallets
+            All bots run 24/7 on VPS · Telegram commands: /basestatus /bscstatus /tonstatus /bot /copywallets
           </p>
         </div>
       </section>
@@ -397,6 +415,13 @@ export default function HomePage() {
                 unit: 'ETH', badge: 'BASE LAUNCH',
                 desc: 'Submit your token idea — GAD AI launches on clank.fun bonding curve on Base. Dev buy creates organic first candle. Uniswap V2 on graduation.',
                 features: ['clank.fun', 'Dev buy', 'Uniswap V2', 'Base chain'],
+              },
+              {
+                icon: '💎', chain: 'TON', color: '#0098EA',
+                platform: 'tonco.io', platformUrl: 'https://tonco.io',
+                unit: 'TON', badge: 'TON LAUNCH',
+                desc: 'Submit your token idea — GAD AI deploys Jetton on TON Network. Liquidity seeded on STON.fi. Dev buy creates the first candle on TON explorer.',
+                features: ['TON Jetton', 'STON.fi LP', 'Dev buy', 'tonapi.io check'],
               },
             ].map(n => (
               <div key={n.chain} style={{
@@ -589,11 +614,11 @@ export default function HomePage() {
           <div style={{ fontSize: 64, marginBottom: 24, display: 'block', animation: 'float 3s ease-in-out infinite' }}>🚀</div>
           <h2 className="cta-title">
             STOP MISSING <span className="accent">GEMS</span><br />
-            ON 3 CHAINS
+            ON 4 CHAINS
           </h2>
           <p className="cta-sub">
-            Solana. Base. BSC. One bot scans them all, copies the best wallets, and notifies you in Telegram.<br />
-            <strong>Alpha Engine v2 is live. Copy-trader is live. 3 chains online.</strong>
+            Solana. Base. BSC. TON. One bot scans them all, copies the best wallets, and notifies you in Telegram.<br />
+            <strong>Alpha Engine v2 is live. Copy-trader is live. 4 chains online.</strong>
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href={TG_BOT}     target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: 13 }}>
@@ -623,7 +648,7 @@ export default function HomePage() {
           <a href="/launcher"  className="footer-link">Launch Token</a>
         </div>
         <div className="footer-copy" suppressHydrationWarning>
-          © {new Date().getFullYear()} GAD AI · Solana · Base · BSC · WAGMI
+          © {new Date().getFullYear()} GAD AI · Solana · Base · BSC · TON · WAGMI
         </div>
       </footer>
     </>

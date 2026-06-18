@@ -579,6 +579,24 @@ img { max-width: 100%; }
   .ticker-item { padding: 0 16px; font-size: 11px; }
 }
 
+/* ─── Live Dashboard ─────────────────────────────────────────── */
+@keyframes livePulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 6px #14F195; }
+  50%      { opacity: 0.4; box-shadow: 0 0 2px #14F195; }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#dashboard button:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  .dashboard-grid { grid-template-columns: 1fr !important; }
+}
+.featured { border-color: rgba(153,69,255,.5) !important; box-shadow: 0 0 30px rgba(153,69,255,.12); }
+
 /* ─── Scrollbar ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
